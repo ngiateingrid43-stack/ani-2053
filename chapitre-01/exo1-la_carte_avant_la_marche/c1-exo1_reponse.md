@@ -180,3 +180,9 @@ Status: Not running
 
 **Nombre de chaînes de compilation (toolchains) :** 7
 (host-clang, host-gcc, clang-mingw, mingw, clang-cross-linux, android-ndk, emscripten)
+
+**Projet de demarage**
+- Sandbox
+
+**Le fichier qui sert de racine au workspace**
+- Nkentseu.jenga
