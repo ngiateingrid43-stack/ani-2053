@@ -1,5 +1,51 @@
 # Exercice2: Analyse du dépôt
 
+## Commande powershell et resultat
+
+**Nombre de fichiers source**
+```
+PS C:\Users\DELL> (Get-ChildItem -Path "C:\Users\DELL\Desktop\BUREAU_2\Rihen\Nkentseu-main-1" -File -Recurse).Count
+14644
+PS C:\Users\DELL> $root = "C:\Users\DELL\Desktop\BUREAU_2\Rihen\Nkentseu-main-1"
+>>
+>> # Tous les fichiers source C/C++
+>> Get-ChildItem $root -Recurse -File -Include *.c,*.cpp,*.cc,*.cxx,*.h,*.hpp,*.hxx |
+>>     Group-Object Extension |
+>>     Sort-Object Count -Descending |
+>>     Format-Table Name, Count -AutoSize
+>>
+>> # Total fichiers sources
+>> (Get-ChildItem $root -Recurse -File -Include *.c,*.cpp,*.cc,*.cxx,*.h,*.hpp,*.hxx).Count
+
+Name Count
+---- -----
+.h    1787
+.cpp  1183
+.c     248
+.cc    221
+.hpp    60
+
+
+3499
+```
+
+**Nombre de ligne**
+```
+PS C:\Users\DELL> $root = "C:\Users\DELL\Desktop\BUREAU_2\Rihen\Nkentseu-main-1"
+>>
+>> $headers = Get-ChildItem $root -Recurse -File -Include *.h,*.hpp,*.hxx
+>> $sources = Get-ChildItem $root -Recurse -File -Include *.c,*.cpp,*.cc,*.cxx
+>>
+>> function Count-Lines($list) {
+>>     ($list | ForEach-Object { (Get-Content $_.FullName | Measure-Object -Line).Lines } | Measure-Object -Sum).Sum
+>> }
+>>
+>> "Headers : {0} fichiers, {1} lignes" -f $headers.Count, (Count-Lines $headers)
+>> "Sources : {0} fichiers, {1} lignes" -f $sources.Count, (Count-Lines $sources)
+Headers : 1847 fichiers, 1010645 lignes
+Sources : 1652 fichiers, 813197 lignes
+
+
 ## Chiffres annoncés (énoncé)
 
 | Métrique | Valeur |
@@ -8,6 +54,7 @@
 | Lignes | 1 193 385 |
 | Fichiers projet | 221 |
 | Taille disque | 17 Go |
+```
 
 ## Comptage réel
 
