@@ -178,7 +178,7 @@ Status: Not running
 - TestSuite : 46
 - StaticLib : 29
 
-**Nombre de chaînes de compilation (toolchains) :** 7
+**Nombre de chaînes de compilation (toolchains) :**  7
 (host-clang, host-gcc, clang-mingw, mingw, clang-cross-linux, android-ndk, emscripten)
 
 **Projet de demarage**
