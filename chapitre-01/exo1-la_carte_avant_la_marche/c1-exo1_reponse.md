@@ -1,4 +1,4 @@
-# Exercice 1 — La carte avant la marche
+# Exercice 1
 
 ## `jenga info`
 
