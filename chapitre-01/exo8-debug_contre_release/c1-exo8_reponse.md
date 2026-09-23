@@ -14,7 +14,7 @@
 
 ### Donc
 ````
-la taille du fichier binaire obtenu grace a la construction avec la configuration Release est tres plus petit que celui obtenue grace la construction avec la configuration Debug.
+la taille du fichier binaire obtenu grace a la construction avec la configuration Release est bien plus petit que celui obtenue grace la construction avec la configuration Debug.
 ````
 
 ## Temps de construction avec Release
