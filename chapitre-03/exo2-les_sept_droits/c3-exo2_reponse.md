@@ -17,7 +17,7 @@
         cfg.width  = 1280;
         cfg.height = 720;
 
-        // 1.1) Interdire le redimensionnement
+        // 1.1) Interdire 
         cfg.resizable = false;
 
         // 2) Créer la fenêtre
@@ -64,7 +64,7 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
+    // 1.1) Interdire 
     cfg.movable = false;
 
     // 2) Créer la fenêtre
@@ -112,7 +112,7 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
+    // 1.1) Interdire 
     cfg.closable = false;
 
     // 2) Créer la fenêtre
@@ -159,7 +159,7 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
+    // 1.1) Interdire 
     cfg.minimizable = false;
 
     // 2) Créer la fenêtre
@@ -206,7 +206,7 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
+    // 1.1) Interdire 
     cfg.maximizable = false;
 
     // 2) Créer la fenêtre
@@ -253,7 +253,6 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
     cfg.canFullscreen = false;
 
     // 2) Créer la fenêtre
@@ -283,7 +282,7 @@ int nkmain(const NkEntryState& state) {
  rien ne change
  ``
 
-## 7. cfg.fullscreen = false
+## 7. cfg.frame = false
 
 **7.1 CODE**
 
@@ -300,8 +299,8 @@ int nkmain(const NkEntryState& state) {
     cfg.width  = 1280;
     cfg.height = 720;
 
-    // 1.1) Interdire le redimensionnement
-    cfg.fullscreen = false;
+    // 1.1) Interdire le plein ecran
+    cfg.frame = false;
 
     // 2) Créer la fenêtre
     NkWindow window;
