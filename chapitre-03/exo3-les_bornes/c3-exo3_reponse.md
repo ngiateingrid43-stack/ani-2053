@@ -99,3 +99,7 @@ Taille de la fen├¬tre : 144 x 51
 ``
 ``taille minimalle obtenu suite au plus petit redimentionnement de ma fenetre cree alors que je n'ais pas fixee de limite de taille``
 
+## Conclusion
+
+``160 par 90 est la réponse à la question de l'énoncé, « la plus petite taille que le système accepte », et la valeur 144 par 51 c'est cette valeur moins le décor.``
+
