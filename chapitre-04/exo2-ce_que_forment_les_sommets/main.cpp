@@ -39,7 +39,7 @@ int main() {
             std::cout << type << ' ' << s << ' ' << nb << " TRIANGLES " << reste << '\n';
             triangles += nb;
         } else {
-            std::cout << type << ' ' << s << " REFUSES\n";
+            std::cout << type << ' ' << s << " REFUSE\n";
             ++refuses;
         }
     }
