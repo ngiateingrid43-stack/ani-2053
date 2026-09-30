@@ -40,10 +40,3 @@ C'est le résultat le plus important de l'exercice, et il ne correspond pas à l
 - Le « filet » écrit dans le second callback (`if (e->IsHandled()) return;`) est ce qui produit le comportement voulu : aucun clic de la zone du panneau n'a été traité par la scène (0 ligne `recu`).
 
 Le résultat attendu, « le second gestionnaire n'est pas appelé », n'est donc obtenu que **fonctionnellement** (la scène n'agit pas), pas **mécaniquement** (la scène est bel et bien invoquée).
-
-## Ce que confirme le journal
-
-- **Ordre d'appel = ordre d'inscription** : chaque ligne `[scene] ... ignore` suit immédiatement une ligne `[panneau] ... CONSOMME`, jamais l'inverse.
-- Chaque clic dans le panneau produit **exactement deux** lignes (`CONSOMME` puis `ignore`) ; il n'y a jamais de doublon côté panneau.
-- Trois clics hors panneau apparaissent **en double avec exactement les mêmes coordonnées** : (795,53), (191,173) et (791,128). Le journal ne permet pas de trancher : il peut s'agir de deux clics rapides au même pixel (double-clic), ou d'un événement livré deux fois. Comme aucun clic du panneau n'est doublé, la première explication est plus probable, mais c'est à confirmer.
-
