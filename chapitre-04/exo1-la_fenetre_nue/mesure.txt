@@ -1,0 +1,2 @@
+# Remplacer par la ligne au format demande, par exemple :
+# lignes : 24, utiles : 17, fond : 18 18 24

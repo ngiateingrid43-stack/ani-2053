@@ -1,0 +1,25 @@
+Ce que la coquille fait a ma place :
+NkCanvasApp::Execute() cree la fenetre et la cible de rendu (CreateWindowAndTarget), resout le backend graphique
+(ligne de commande --backend=, puis variable d'environnement NK_GFX_BACKEND, puis Config().backend, puis defaut de
+plateforme), calcule la mise en page avant OnInit, ecoute les evenements de cycle de vie (perte/gain de focus, et sur
+mobile mise en arriere-plan/retour), plafonne et cede la cadence a chaque trame (CadencerTrame), et a chaque image fait
+elle-meme Clear(clearColor) puis Display() autour de mon OnRender (que je n'ai meme pas besoin d'ecrire pour un fond
+uni). Elle gere aussi la fermeture : un NkWindowCloseEvent passe par HandleLifecycle, qui appelle OnCloseRequested()
+(vrai par defaut) puis ferme proprement la fenetre et detruit la cible dans le bon allocateur. Elle offre enfin
+--capture=fichier et --capture-frame=N a toute application, sans une ligne a ecrire pour ca.
+
+Ce qui se passe si je configure dans OnInit :
+Aucune erreur, ni a la compilation ni a l'execution : le code s'ecrit et s'appelle normalement. Mais rien ne change a
+l'ecran, car CreateWindowAndTarget() (qui lit Config().title/width/height/centered/resizable/frame pour construire la
+fenetre) est deja appele par Execute() AVANT que OnInit() ne soit invoque. La fenetre existe donc deja avec les valeurs
+lues au moment de sa creation ; modifier Config() plus tard modifie un struct qui n'est plus consulte pour ces champs.
+Le symptome precis : la fenetre garde son titre "Application NKCanvas" par defaut (960x540) au lieu du titre/de la
+taille que j'ai essaye de poser dans OnInit, sans le moindre message d'erreur ou d'avertissement pour le signaler.
+
+Ce qui se passe sans NKMain.h :
+La classe FenetreNue et la fonction nkmain compilent sans probleme : rien dans ce fichier n'a besoin de NKMain.h pour
+etre analyse par le compilateur. L'echec arrive a l'edition de liens : NKMain.h est celui qui definit le VRAI point
+d'entree de la plateforme (main/WinMain/android_main/etc., voir NkEntry.h) et l'aiguille vers mon nkmain. Sans cet
+include, mon fichier ne fournit qu'une fonction nkmain() ordinaire que personne n'appelle ; l'editeur de liens
+reclame alors le symbole du point d'entree reel de la plateforme (par exemple main), que je n'ai jamais ecrit et qui
+n'existe nulle part dans mon projet.
