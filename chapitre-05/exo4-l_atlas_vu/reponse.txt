@@ -1,0 +1,22 @@
+Pourquoi une seule texture :
+Tous les glyphes sont rasterises dans une seule grande texture, l'atlas, au
+lieu d'une image par lettre. Une seule texture se charge une fois et se lie
+une fois, donc tout le texte peut etre dessine avec un seul appel, alors
+qu'avec 188 textures il faudrait en changer sans cesse. Chaque glyphe est
+retrouve par ses coordonnees dans l'atlas (u0, v0, u1, v1).
+
+Ce que change la taille :
+La taille change la place que prend chaque glyphe, donc la taille de l'atlas.
+A 18 pixels, les 188 glyphes tiennent dans une texture de 512x512 ; a 48
+pixels, il en faut une de 1024x1024. Le nombre de glyphes ne change pas (188
+dans les deux cas), mais chacun est plus grand. La place perdue passe de 84 %
+a 73 % : la texture grandit par puissances de 2, donc un atlas de 512x512
+rempli a moins d'un sixieme gaspille beaucoup, alors qu'a 48 pixels les
+glyphes occupent une plus grande part de la texture.
+
+A quoi sert la marge entre glyphes :
+La marge est un petit espace vide laisse entre deux glyphes voisins. Quand le
+GPU lit la texture avec un filtrage (bilineaire), il melange les pixels
+voisins, et sans marge un glyphe prendrait un peu de la couleur de son
+voisin : il "saignerait" sur lui. La marge empeche ce melange. Elle compte
+dans la place perdue avec les etageres inoccupees.
