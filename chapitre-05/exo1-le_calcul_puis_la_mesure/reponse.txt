@@ -1,0 +1,36 @@
+Ce que la taille du fichier ne dit pas :
+La taille du fichier ne dit rien de la place occupee en memoire une fois
+l'image decodee, parce qu'elle mesure l'image compressee et non les pixels.
+Dans mes mesures, aplat.png pese 19 697 octets mais occupe 2 239 488 octets
+une fois decode (environ 114 fois plus), alors que Ing.jpeg pese 66 392
+octets pour 2 286 144 octets decodes (environ 34 fois plus). Deux images de
+meme dimensions, Ing.jpeg et la photo WhatsApp (756x1008 et 1008x756),
+occupent exactement la meme place, 2 286 144 octets, alors que leurs
+fichiers pesent 66 392 et 92 066 octets. Le rapport entre fichier et memoire
+change d'une image a l'autre, donc le poids du fichier ne permet aucune
+prediction.
+
+L'ecart entre calcul et mesure :
+Le calcul (largeur x hauteur x octets par pixel) donne la place des pixels
+seuls, alors que la mesure releve ce que le programme a reellement consomme.
+L'ecart est irregulier. Pour aplat.png il est quasi nul (2 239 488 calcules,
+2 244 608 mesures). Pour RIHEN Academy.png il est d'environ 6 %. Pour
+Ing.jpeg la mesure (4 345 856) est presque le double du calcul, sans doute a
+cause des tampons du decodeur. Pour icons8-ico-50.png la mesure vaut 0 : le
+bloc de 10 000 octets est trop petit pour etre vu, probablement place dans de
+la memoire deja reservee. Pour la photo WhatsApp la mesure (1 839 104) est
+inferieure au calcul, probablement parce que la memoire liberee par les
+images precedentes a ete reutilisee. La mesure depend de l'ordre de
+chargement, de l'allocateur et du decodeur : elle donne un ordre de grandeur,
+alors que le calcul donne la valeur fiable des pixels.
+
+Avant d'ouvrir cinquante photos :
+Avant d'ouvrir cinquante photos, je calcule leur memoire avec la formule
+sans les charger. Il suffit de connaitre leurs dimensions et leur format de
+pixel. Par exemple, une photo de telephone de 4000x3000 en 4 octets par
+pixel occupe 48 000 000 octets, donc cinquante photos occupent
+2 400 000 000 octets, soit environ 2,4 Go, meme si leurs fichiers ne pesent
+que quelques centaines de Mo en tout. Si ce total depasse la memoire
+disponible, je ne les charge pas toutes en meme temps : je les charge une par
+une, je reduis leur taille, ou je ne garde en memoire que celles qui sont
+affichees.

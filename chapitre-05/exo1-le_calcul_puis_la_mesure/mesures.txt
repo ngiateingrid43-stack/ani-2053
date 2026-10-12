@@ -1,0 +1,5 @@
+image : Ing.jpeg, calcul : 2286144, mesure : 4345856, fichier : 66392
+image : RIHEN Academy 09_10_2026 09_59_24.png, calcul : 7833600, mesure : 8327168, fichier : 224967
+image : icons8-ico-50.png, calcul : 10000, mesure : 0, fichier : 929
+image : WhatsApp Image 2026-10-06 at 00.45.44.jpeg, calcul : 2286144, mesure : 1839104, fichier : 92066
+image : aplat.png, calcul : 2239488, mesure : 2244608, fichier : 19697
