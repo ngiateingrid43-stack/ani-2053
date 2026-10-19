@@ -1,0 +1,7 @@
+Types complets : 18 octets (144 bits)
+
+Quantifié : 8 octets (60 bits)
+
+Écart maximal : sur l'état envoyé : x 0.00402 m, y 0.00299 m, angle 0.20001 degré, santé 0, vivant et numéro exacts. Plus grand écart sur un balayage de 100000 états aléatoires dans les bornes : x 0.00555 m, y 0.00507 m, angle 0.49332 degré, santé 0.0. Les paquets en types complets se relisent sans aucun écart.
+
+Ce que le joueur verrait : si l'on prend l'ordre de grandeur d'un jeu où 1 mètre vaut environ 50 pixels, l'écart de position de 0.555 cm au plus vaut moins d'un quart de pixel : on ne le voit pas, et le terrain de 1000 m par 1000 m tient sur 17 bits par axe au lieu de 32. L'écart d'angle de 0.493 degré au plus fait tourner un personnage d'un quart de degré : invisible à l'écran. La santé est un entier exact et ne bouge pas. Le paquet passe de 18 à 8 octets, soit 56 % de moins, pour une erreur que le joueur ne peut pas voir ; la question qui guide n'est pas technique, c'est : quelle erreur le joueur peut-il voir ?

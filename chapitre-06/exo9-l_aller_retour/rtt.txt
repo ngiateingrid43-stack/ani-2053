@@ -1,0 +1,11 @@
+Moyenne : 142.280 ms
+
+Minimum : 109.746 ms
+
+Maximum : 316.652 ms
+
+Lissée : 128.175 ms
+
+Moteur : 24.746 ms
+
+Écart : Mes mesures sont faites à chaque message, depuis la boucle du client, avec un chronomètre : la moyenne (142.280 ms) suit toutes les variations, le maximum (316.652 ms) montre un message plus lent que les autres. Ma valeur lissée (128.175 ms) pondère chaque nouvelle mesure par 0,125 ; comme elle part de 100 ms, le départ pèse (1 - 0,125) puissance 100, soit environ 1,6 millionième de milliseconde au bout de cent mesures : il est complètement oublié, et la valeur lissée reflète surtout les dernières mesures. L'estimation du moteur (24.746 ms) est faite par le fil réseau du moteur, pas par mon chronomètre : dans NkConnectionManager::NetThreadLoop (situé dans NkConnection.cpp), le fil met à jour le RTT à la réception de chaque paquet (ACK ou message de contrôle) en mesurant le temps écoulé depuis l'émission du paquet correspondant, souvent stocké sous forme d'une valeur entière de ticks convertie en millisecondes. De plus, le moteur échantillonne les échanges de manière continue en arrière-plan sans bloquer la boucle séquentielle, et intègre des lissages spécifiques ou exclut les temps d'attente d'une boucle synchrone un-par-un, ce qui explique pourquoi son estimation est plus faible et stable par rapport à notre chronomètre séquentiel.

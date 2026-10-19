@@ -1,3 +1,14 @@
+// Exercice 10 - Le joueur fantome
+// Le serveur tient une table des joueurs connectes, note l'instant du dernier message de
+// chacun, et dans onPeerDisconnected retire le joueur en affichant la raison et le delai
+// depuis son dernier message. Le client envoie un message toutes les 100 ms.
+//
+// Usage :
+//   fantome serveur
+//   fantome client [adresse]           -> envoie en boucle : a tuer depuis le gestionnaire des taches
+//   fantome client propre [adresse]    -> envoie 2 s puis appelle Shutdown() avant de quitter
+// Le serveur ecrit fantome-serveur.log (a recopier dans fantome.txt).
+
 #include "NKWindow/NKMain.h"
 #include "NKLogger/NkLog.h"
 #include "NKTime/NkChrono.h"
@@ -12,6 +23,7 @@
 #include <thread>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -37,7 +49,7 @@ static void Trace(const char *fmt, ...) {
     va_start(ap, fmt);
     std::vsnprintf(ligne, sizeof(ligne), fmt, ap);
     va_end(ap);
-    NkScopedLock<NkMutex> verrou(g_mutexJournal);
+    threading::NkScopedLock<NkMutex> verrou(g_mutexJournal);
     logger.Infof("%s", ligne);
     if (g_journal) {
         std::fprintf(g_journal, "%s\n", ligne);
@@ -74,7 +86,7 @@ static void AfficherTable(const char *titre) {
 static int RoleServeur() {
     net::NkConnectionManager serveur;
     serveur.onPeerConnected = [](net::NkPeerId p) {
-        NkScopedLock<NkMutex> verrou(g_mutexTable);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexTable);
         for (int32 i = 0; i < kMaxJoueurs; ++i)
             if (!g_table[i].present) {
                 g_table[i] = Joueur{p.value, g_horloge.Elapsed().milliseconds, true};
@@ -85,7 +97,7 @@ static int RoleServeur() {
         AfficherTable("apres connexion");
     };
     serveur.onPeerDisconnected = [](net::NkPeerId p, const char *raison) {
-        NkScopedLock<NkMutex> verrou(g_mutexTable);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexTable);
         const float64 maintenant = g_horloge.Elapsed().milliseconds;
         float64 delai = -1.0;
         AfficherTable("avant depart");
@@ -113,7 +125,7 @@ static int RoleServeur() {
         msgs.Clear();
         serveur.DrainAll(msgs);
         if (msgs.Size() > 0) {
-            NkScopedLock<NkMutex> verrou(g_mutexTable);
+            threading::NkScopedLock<NkMutex> verrou(g_mutexTable);
             const float64 maintenant = g_horloge.Elapsed().milliseconds;
             for (usize i = 0; i < msgs.Size(); ++i)
                 for (int32 j = 0; j < kMaxJoueurs; ++j)
@@ -132,7 +144,7 @@ static net::NkPeerId g_pairServeur;
 static int RoleClient(const char *adresse, bool propre) {
     net::NkConnectionManager client;
     client.onPeerConnected = [](net::NkPeerId p) {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         g_pairServeur = p;
     };
     const net::NkAddress addr(adresse, kPort);
@@ -153,7 +165,7 @@ static int RoleClient(const char *adresse, bool propre) {
     NkChrono::SleepMilliseconds(static_cast<int64>(200));
     net::NkPeerId pair;
     {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         pair = g_pairServeur;
     }
     logger.Infof("[client] connecte, mode %s (processus a tuer depuis le gestionnaire des taches si 'coupure')",

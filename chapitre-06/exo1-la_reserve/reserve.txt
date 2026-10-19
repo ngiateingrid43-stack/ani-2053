@@ -1,0 +1,11 @@
+Tâche : additionner 1000 entiers d'un tableau dans une variable locale, 200 fois (tâche courte, de l'ordre de la microseconde) ; la tâche longue répète cette addition 100 fois de plus. Résultat de contrôle affiché : 3027569400000.
+
+Réserve : 0.353 ms, 0.247 ms, 0.247 ms
+
+Fils : 14.957 ms, 14.158 ms, 15.335 ms
+
+Ouvriers : 4
+
+Tâche longue : réserve 14.743 ms, fils 23.322 ms (médianes de trois mesures)
+
+Pourquoi : Créer un fil coûte cher : pour chacun, le système réserve une pile, l'ordonnance, puis le détruit. La version Fils paie ce coût 200 fois ; la réserve crée ses 4 ouvriers une seule fois et leur distribue les tâches. Pour la tâche courte, ce coût de création domine le calcul : 0.247 ms pour la réserve contre 14.957 ms pour les fils (rapport 60.6). Avec la tâche cent fois plus longue, le calcul domine à son tour et l'écart relatif se réduit : 14.743 ms contre 23.322 ms (rapport 1.6), car le coût fixe de création d'un fil est amorti par un travail plus long.

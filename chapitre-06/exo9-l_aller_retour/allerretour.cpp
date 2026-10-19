@@ -1,3 +1,14 @@
+// Exercice 9 - L'aller-retour
+// Le serveur renvoie tel quel chaque message. Le client envoie 100 messages numerotes,
+// UN A LA FOIS, chronometre chaque aller-retour, calcule moyenne / min / max, le
+// RTT lisse (SRTT <- (1 - 0,125) x SRTT + 0,125 x R, depart 100 ms), et lit l'estimation
+// du moteur (GetConnectionStats -> rttMs).
+//
+// Usage :
+//   allerretour serveur
+//   allerretour client [adresse]      (127.0.0.1 par defaut)
+// Le client ecrit mesures-rtt.txt (100 lignes) et rtt.txt.
+
 #include "NKWindow/NKMain.h"
 #include "NKLogger/NkLog.h"
 #include "NKTime/NkChrono.h"
@@ -9,6 +20,7 @@
 #include <cstring>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -50,7 +62,7 @@ static int RoleServeur() {
 static int RoleClient(const char *adresse) {
     net::NkConnectionManager client;
     client.onPeerConnected = [](net::NkPeerId p) {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         g_pairServeur = p;
     };
     const net::NkAddress addr(adresse, kPort);
@@ -71,7 +83,7 @@ static int RoleClient(const char *adresse) {
     NkChrono::SleepMilliseconds(static_cast<int64>(300));
     net::NkPeerId pair;
     {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         pair = g_pairServeur;
     }
 

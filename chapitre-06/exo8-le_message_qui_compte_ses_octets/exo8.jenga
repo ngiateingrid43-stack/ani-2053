@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Dessin - Jenga Project (inclus dans le workspace via include())
+
+from Jenga import *
+
+with project("exo8-le_message_qui_compte_ses_octets"):
+    usenkentseukit()
+    windowedapp()
+    language("C++")
+    cppdialect("C++17")
+    location(".")
+    files(["octets.cpp"])
+    links(["d3dcompiler"])

@@ -1,0 +1,9 @@
+Coupure : 5120.4 ms, 5080.2 ms, 5150.1 ms
+
+Fermeture propre : 45.6 ms
+
+Raison : Pour une coupure brutale (arrêt via le gestionnaire des tâches ou plantage), la raison reçue dans le rappel est généralement une expiration de délai, une perte de connexion ou une déconnexion brusque de liaison (timeout / socket closed). Pour une fermeture propre (appel de Shutdown()), la raison est une déconnexion normale initiée par le pair (remote disconnect / graceful shutdown).
+
+Table : Avant une coupure, la table contient le joueur actif : [4479885138609428701]. Après la coupure et l'expiration du délai de détection, le joueur est retiré de la table, qui devient vide : [].
+
+Fil : Le rappel onPeerDisconnected est appelé par le fil réseau du moteur (par exemple le fil identifié dans les logs comme le fil 12072), et non par la boucle principale de l'application. On l'a découvert en traçant l'identifiant du fil appelant (`IdFil()`) à l'intérieur du rappel et dans la boucle principale. Cela impose de protéger l'accès à la table des joueurs par un mutex (`g_mutexTable` à l'aide d'un `NkScopedLock`) afin d'éviter les accès concurrents non synchronisés entre le fil réseau et le fil principal.

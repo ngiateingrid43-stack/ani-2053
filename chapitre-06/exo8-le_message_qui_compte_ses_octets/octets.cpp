@@ -1,3 +1,12 @@
+// Exercice 8 - Le message qui compte ses octets
+// Le meme etat de joueur (6 champs) ecrit de deux facons :
+//   - types complets : WriteU8 / WriteF32 / WriteI32
+//   - quantifie      : WriteBool / WriteU8 / WriteF32Q / WriteInt
+// Trois modes :
+//   octets local              -> tailles, relecture, ecart maximal (balayage), ecrit tailles.txt
+//   octets serveur            -> recoit les deux paquets par le reseau et les relit
+//   octets client [adresse]   -> envoie les deux paquets au serveur (127.0.0.1 par defaut)
+
 #include "NKWindow/NKMain.h"
 #include "NKLogger/NkLog.h"
 #include "NKTime/NkChrono.h"
@@ -10,6 +19,7 @@
 #include <cstring>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -197,7 +207,7 @@ static net::NkPeerId g_pairServeur;
 static int ModeClient(const char *adresse) {
     net::NkConnectionManager client;
     client.onPeerConnected = [](net::NkPeerId p) {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         g_pairServeur = p;
     };
     const net::NkAddress addr(adresse, kPort);
@@ -218,7 +228,7 @@ static int ModeClient(const char *adresse) {
     NkChrono::SleepMilliseconds(static_cast<int64>(200));
     net::NkPeerId pair;
     {
-        NkScopedLock<NkMutex> verrou(g_mutexPair);
+        threading::NkScopedLock<NkMutex> verrou(g_mutexPair);
         pair = g_pairServeur;
     }
     uint8 b1[64], b2[64];

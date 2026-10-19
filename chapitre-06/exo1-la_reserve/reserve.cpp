@@ -7,6 +7,7 @@
 #include <cstdio>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -53,7 +54,7 @@ static float64 MesurerFils(int32 rep) {
     NkThread *fils[kNbTaches];
     NkChrono chrono;
     for (int32 t = 0; t < kNbTaches; ++t) {
-        fils[t] = new NkThread([t, rep]() { g_resultats[t] = Tache(rep); });
+        fils[t] = new NkThread([t, rep](void *) { g_resultats[t] = Tache(rep); });
         fils[t]->SetName("tache");
     }
     for (int32 t = 0; t < kNbTaches; ++t) fils[t]->Join(); // chaque fil cree est joint

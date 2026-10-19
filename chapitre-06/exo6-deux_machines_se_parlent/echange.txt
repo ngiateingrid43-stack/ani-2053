@@ -1,0 +1,7 @@
+Serveur : Le serveur initialise le réseau et démarre sur le port 7777. La console affiche « [serveur] a l'ecoute sur le port 7777 ». Après la connexion, elle affiche « [serveur] pair connecte, identifiant (value) = 5533116318179720550 ». Le message reçu est « [serveur] message recu de l'expediteur (from.value) = 5533116318179720550 : "bonjour serveur" ».
+
+Client : Le client se connecte à 127.0.0.1:7777. La console affiche « [client] Connect(127.127.127.127:127) -> OK (la demande est partie, pas encore connecte) », puis « [client] connecte, identifiant du serveur (value) = 1 ». Le message « bonjour serveur » est envoyé avec succès : « [client] message "bonjour serveur" envoye -> OK ».
+
+Pair : Du côté serveur, l'identifiant du pair reçu est 5533116318179720550. Il désigne le client connecté au serveur. Du côté client, l'identifiant du pair est 1. Il désigne le serveur auquel le client s'est connecté. Les identifiants sont différents, car chaque côté attribue son propre identifiant local au pair distant.
+
+Machines : Le test a été effectué sur une seule machine, en lançant le serveur et le client séparément dans deux exécutions. L'adresse utilisée côté client est 127.0.0.1, qui désigne la machine locale, et le port utilisé est 7777.

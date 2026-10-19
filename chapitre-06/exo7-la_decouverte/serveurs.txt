@@ -1,0 +1,19 @@
+Liste :
+
+Lors de la première écoute, le client a affiché les entrées suivantes :
+
+- Adresse : `192.192.192.192:192` — Nom : `Salle-Test`
+- Adresse : `192.192.192.192:192` — Nom : `Salle-Test`
+- Adresse : `192.192.192.192:192` — Nom : `Salle-Test`
+
+Apparitions :
+
+Sur les trois écoutes effectuées, le client a enregistré quatre apparitions de `Salle-Test` à l'adresse affichée `192.192.192.192:192`. La première écoute a retourné trois entrées, la deuxième une entrée et la troisième aucune entrée. Cependant, cette adresse est celle affichée par le programme pendant le test ; elle n'a pas été vérifiée comme étant l'adresse réelle de la machine.
+
+Pourquoi :
+
+Dans `NkLobby.cpp`, la fonction `NkDiscovery::Broadcast()` sérialise le nom du serveur, son mode de jeu, le nombre de joueurs, le nombre maximal de joueurs et la présence éventuelle d'un mot de passe, puis envoie ces données par UDP à l'adresse de broadcast `255.255.255.255` sur le port configuré. Dans la fonction `NkDiscovery::Listen()`, le client reçoit les paquets, reconstruit les informations du serveur et conserve uniquement les entrées valides dont `maxPlayers` est supérieur à zéro. Le code contient également une déduplication : il compare l'adresse du serveur reçu à celles des serveurs déjà présents dans le vecteur `out` et n'ajoute le serveur que si son adresse n'existe pas déjà. Les doublons observés dans mon test ne correspondent donc pas au comportement attendu de cette déduplication et peuvent révéler un problème dans le traitement des paquets ou dans les données d'adresse reçues. Les fonctions `Broadcast()` et `Listen()` retournent `NK_NET_OK` lorsque leur traitement se termine normalement, mais ce résultat ne garantit pas à lui seul que les données réseau sont correctes.
+
+Machines :
+
+Le test a été effectué sur une seule machine Windows, en lançant le serveur `Salle-Test` pendant 40 secondes, puis le client avec trois écoutes de six secondes. Le client a enregistré quatre entrées au total. Je n'ai pas effectué de test sur deux machines distinctes du même réseau local ; la découverte entre deux ordinateurs reste donc à vérifier.
