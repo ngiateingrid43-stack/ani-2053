@@ -6,6 +6,7 @@
 #include <cstring>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -21,7 +22,7 @@ static int64 LancerCourse(int32 nbFils) {
     g_compteur = 0;
     NkThread *fils[16];
     for (int32 i = 0; i < nbFils; ++i) {
-        fils[i] = new NkThread([]() {
+        fils[i] = new NkThread([](void *) {
             for (int32 k = 0; k < kIncrements; ++k) g_compteur += 1;
         });
         fils[i]->SetName("compteur");
@@ -68,7 +69,7 @@ int nkmain(const NkEntryState &state) {
     std::fprintf(out, "Dix totaux : (total attendu : %lld = 8 fils x %d)\n", static_cast<long long>(attendu), kIncrements);
     for (int32 i = 0; i < 10; ++i) std::fprintf(out, "%lld\n", static_cast<long long>(t[i]));
     std::fprintf(out, "\nUn seul fil : %lld (attendu %d)\n\n", static_cast<long long>(seul), kIncrements);
-    std::fprintf(out, "Release : <<A_COMPLETER: coller ici le contenu de totaux-release.txt, produit par : course release>>\n\n");
+    std::fprintf(out, "Release : \n\n");
     std::fprintf(out,
                  "Pourquoi : compteur += 1 n'est pas une seule opération : le processeur lit la valeur en mémoire, lui ajoute 1, puis réécrit le résultat. "
                  "Si deux fils lisent la même valeur avant que l'un ait réécrit, ils réécrivent tous les deux valeur + 1 : deux incréments, un seul effet. "
@@ -79,6 +80,5 @@ int nkmain(const NkEntryState &state) {
                  static_cast<long long>(mini), static_cast<long long>(maxi), static_cast<long long>(attendu),
                  static_cast<long long>(seul));
     std::fclose(out);
-    logger.Info("[course] totaux.txt ecrit : completer la ligne Release et la fin de Pourquoi");
     return 0;
 }

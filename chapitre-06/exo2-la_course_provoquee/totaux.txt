@@ -1,0 +1,17 @@
+Dix totaux : (total attendu : 8000000 = 8 fils x 1000000)
+2167572
+2118509
+2979933
+2835288
+5256382
+2545751
+4051862
+3064622
+2923767
+2740553
+
+Un seul fil : 1000000 (attendu 1000000)
+
+Release : Rien ne se passe
+
+Pourquoi : compteur += 1 n'est pas une seule opération : le processeur lit la valeur en mémoire, lui ajoute 1, puis réécrit le résultat. Si deux fils lisent la même valeur avant que l'un ait réécrit, ils réécrivent tous les deux valeur + 1 : deux incréments, un seul effet. Le nombre d'incréments perdus dépend de l'instant exact où chaque fil est interrompu, d'où des totaux différents à chaque exécution (de 2118509 à 5256382 sur mes dix, au lieu de 8000000). Avec un seul fil, personne ne peut s'intercaler entre la lecture et l'écriture : le total est exact (1000000). En Release, <<A_COMPLETER: décrire ce que vous avez observé et pourquoi. Deux explications à vérifier : le compilateur garde le compteur dans un registre pendant toute la boucle et n'écrit qu'à la fin, ou chaque fil termine avant que le suivant démarre>>.

@@ -1,0 +1,11 @@
+Sans protection : total 2072547 (attendu 8000000), temps médian 28.832 ms
+
+Mutex : total 8000000 (attendu 8000000), temps médian 197.856 ms
+
+Atomique : total 8000000 (attendu 8000000), temps médian 151.765 ms
+
+Local : total 8000000 (attendu 8000000), temps médian 5.622 ms
+
+La moins chère : Local (5.622 ms), parmi les versions qui donnent le bon total.
+
+Pourquoi : Mutex (197.856 ms) : chaque incrément prend et rend le verrou, et les huit fils s'attendent les uns les autres : on paie l'attente du verrou. Atomique (151.765 ms) : l'incrément est indivisible grâce au processeur, sans verrou ni attente passive, mais les huit cœurs se disputent la même case mémoire et le coût de cette coordination matérielle s'ajoute à chaque incrément. Local (5.622 ms) : chaque fil compte dans sa propre variable, rien n'est partagé pendant le calcul, et seule l'addition finale des huit totaux se fait après les Join : c'est la seule version qui ne paie aucune coordination. Sans protection (28.832 ms) est la plus rapide parce qu'elle ne coordonne rien, mais son total (2072547 au lieu de 8000000) est faux : ce n'est pas une option. Le verrou de la version Mutex est pris autour de chaque incrément, pas autour de toute la boucle. La sûreté vient de la façon de partager, pas du nombre de verrous.

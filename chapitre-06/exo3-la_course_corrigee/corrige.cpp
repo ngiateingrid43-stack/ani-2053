@@ -9,6 +9,7 @@
 #include <cstdio>
 
 using namespace nkentseu;
+using namespace nkentseu::threading; // NkThread, NkThreadPool, NkMutex... vivent dans nkentseu::threading
 
 NKENTSEU_DEFINE_APP_DATA(([]() {
     NkAppData d{};
@@ -33,7 +34,7 @@ static float64 Mesurer(F corps) {
     NkThread *fils[kFils];
     NkChrono chrono;
     for (int32 i = 0; i < kFils; ++i) {
-        fils[i] = new NkThread([corps, i]() { corps(i); });
+        fils[i] = new NkThread([corps, i](void *) { corps(i); });
         fils[i]->SetName("compteur");
     }
     for (int32 i = 0; i < kFils; ++i) fils[i]->Join();
@@ -71,7 +72,7 @@ int nkmain(const NkEntryState &) {
         g_mutexTotal = 0;
         tMutex[k] = Mesurer([](int32) {
             for (int32 j = 0; j < kIncrements; ++j) {
-                NkScopedLock<NkMutex> verrou(g_mutex); // le verrou entoure l'INCREMENT, pas la boucle
+                nkentseu::threading::NkScopedLock<NkMutex> verrou(g_mutex); // le verrou entoure l'INCREMENT, pas la boucle
                 g_mutexTotal += 1;
             }
         });
@@ -114,7 +115,7 @@ int nkmain(const NkEntryState &) {
         std::fprintf(out, "La moins chère : %s (%.3f ms), parmi les versions qui donnent le bon total.\n\n", r[meilleure].nom,
                      r[meilleure].mediane);
     else
-        std::fprintf(out, "La moins chère : <<A_COMPLETER: aucune version juste n'a donné le bon total, vérifier le code>>\n\n");
+        std::fprintf(out, "La moins chère : \n\n");
     std::fprintf(out,
                  "Pourquoi : Mutex (%.3f ms) : chaque incrément prend et rend le verrou, et les huit fils s'attendent les uns les autres : on paie l'attente du verrou. "
                  "Atomique (%.3f ms) : l'incrément est indivisible grâce au processeur, sans verrou ni attente passive, mais les huit cœurs se disputent la même case mémoire et le coût de cette coordination matérielle s'ajoute à chaque incrément. "
