@@ -1,0 +1,14 @@
+Question :
+<question précise> — début : <date heure> — fin : <date heure>
+
+Les endroits :
+<chemin du fichier et nom de la fonction ou de la classe, sans numéro de ligne>
+
+Les surprises :
+<ce qui n'était pas comme vous l'attendiez>
+
+Les questions ouvertes :
+<questions restées ouvertes, avec leur date>
+
+Les mensonges :
+<ce qu'un commentaire ou un nom dit, et que le code contredit — ou : aucun>

@@ -1,0 +1,18 @@
+Module : NKNetwork
+
+D'après le projet :
+1. NKNetwork dépend de NKFileSystem et NKStream : il lit et écrit sur le disque, manipule des flux de données (paquets, corps HTTP, snapshots).
+2. Il dépend de NKTime : il mesure des durées, gère des timeouts, des horodatages de paquets, de la synchronisation.
+3. Il dépend de NKThreading : il fait tourner des choses en parallèle (réception, écoute, connexions, matchmaking asynchrone).
+4. Il dépend de NKLogger : il journalise les connexions, erreurs, paquets, événements réseau.
+5. Il ne dépend ni de NKGui, ni de NKWindow, ni de NKCanvas, ni de NKImage, ni de NKFont, ni de NKAudio, ni de NKMedia, ni de NKGlad : il ne dessine rien, n'affiche aucune fenêtre, ne joue aucun son, ne décode aucune image ni vidéo. Ce n'est pas un module graphique.
+
+Après l'en-tête :
+include/NKNetwork/NKNetwork.h. L'en-tête confirme et corrige : NKNetwork est bien un module réseau pur, mais il est structuré en cinq couches (Système, Transport, Protocole, Réplication ECS, Application) et il expose bien plus que du simple socket : un client HTTP/REST (NkHTTPClient, NkLeaderboard), un système de lobby et de matchmaking (NkLobby, NkSession, NkMatchmaker, NkDiscovery), un routeur RPC (NkRPCRouter), et surtout une couche de réplication ECS (NkNetWorld, NkNetSystem, NkNetInterpolator, NkNetSnapshot) qui dépend directement du monde ECS du moteur. Le transport est bâti sur UDP fiable (NkReliableUDP) au-dessus de sockets (NkSocket, NkAddress, NkPacket), avec un protocole binaire (NkBitWriter, NkBitReader, NkConnection, NkConnectionManager). L'en-tête ne parle ni de fenêtre, ni de rendu, ni d'image, ni de son — ce que les dépendances laissaient déjà deviner.
+
+Mes erreurs :
+1. J'avais écrit « manipule des flux de données » en pensant à NKStream comme à de la sérialisation générique : c'est vrai, mais l'en-tête montre que la sérialisation réseau est surtout un protocole binaire maison (NkBitWriter/NkBitReader), pas les flux de NKStream.
+2. Je n'avais pas vu venir la couche HTTP/REST (NkHTTPClient, NkLeaderboard) : les dépendances ne la laissaient pas deviner, car NKHTTPClient ne tire rien de plus que ce que NKNetwork tire déjà (sockets, streams, threading).
+3. Je n'avais pas vu venir la couche de réplication ECS (NkNetWorld, NkNetSystem, NkNetInterpolator). Elle est pourtant cohérente avec la dépendance à NKCore, mais elle est bien plus grosse que ce que « Network » laisse imaginer : c'est un moteur de jeu réseau, pas une bibliothèque de sockets.
+4. J'avais sous-estimé NKThreading : je pensais à des timeouts ; l'en-tête montre que le matchmaking (SearchAsync) et la réception (DrainAll) sont conçus pour tourner en tâche de fond.
+5. Je n'avais pas deviné que NkSocket expose PlatformInit() : la couche système (Winsock/BSD) doit être initialisée explicitement, ce qui n'est visible que dans l'en-tête.
