@@ -1,0 +1,20 @@
+Virtuelles pures :
+J'ai compté 22 méthodes virtuelles pures dans la classe NkIRenderer2D. J'ai ouvert le fichier NkIRenderer2D.h et j'ai recherché les lignes contenant `= 0;` qui sont bien des déclarations de méthodes virtuelles pures. Pour une seconde vérification, j'ai listé toutes les méthodes virtuelles et j'ai soustrait celles qui ont un corps (qui ne contiennent pas `= 0;`). Le compte est le même.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Core/NkIRenderer2D.h
+
+Dorsaux :
+Le kit contient les dorsaux suivants dans le dossier NKCanvas/Backend/ :
+- OpenGL
+- Vulkan
+- DirectX
+- Software
+
+Ce que chacun écrit :
+- NkOpenGLRenderer2D hérite de NkBatchRenderer2D et redéfinit l'ensemble des méthodes de NkIRenderer2D, soit 22 méthodes.
+- NkVulkanRenderer2D hérite de NkBatchRenderer2D et redéfinit également l'ensemble des 22 méthodes.
+- NkDX12Renderer2D hérite de NkBatchRenderer2D et redéfinit les 22 méthodes.
+- NkDX11Renderer2D hérite de NkBatchRenderer2D et redéfinit les 22 méthodes.
+- NkSoftwareRenderer2D hérite de NkBatchRenderer2D et redéfinit les 22 méthodes.
+
+Le coût :
+Le coût d'ajouter un nouveau dorsal (backend) est d'implémenter les 22 méthodes virtuelles pures de l'interface NkIRenderer2D. Cependant, le travail réel est considérablement réduit car tous les dorsaux héritent de NkBatchRenderer2D, qui factorise la logique de batching (accumulation des sommets). Un nouveau dorsal ne doit donc implémenter que la méthode virtuelle pure SubmitBatches et les quelques méthodes de gestion de ressources (textures, shaders) spécifiques à l'API. Le coût est donc principalement l'implémentation de ces méthodes spécifiques, pas de la boucle de rendu complète.

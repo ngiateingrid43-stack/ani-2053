@@ -1,0 +1,17 @@
+Situations :
+1. Le joueur maintient la flèche droite. Modèle : pull. Il ne s'agit pas d'un événement ponctuel (comme "appuyer") mais d'un état qui dure. L'outil est la fonction `IsKeyDown` de NkInput.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Input/NkInput.h:145
+2. Il appuie sur Échap. Modèle : push. C'est un événement ponctuel. On s'abonne à NkKeyPressEvent. L'outil est un callback sur NkKeyPressEvent.
+Applications/NKGuiDemo/src/NKGuiDemo/main.cpp:380
+3. On veut la position de la souris. Modèle : pull. La position est un état continu. On demande sa valeur à chaque image via `ctx.input.mousePos`. L'outil est le champ `mousePos` de NkGuiInput.
+Kernel/Runtime/NKGui/src/NKGui/Core/NkGuiInput.h:15
+4. Un fichier est déposé sur la fenêtre. Modèle : push. C'est un événement ponctuel. L'outil est un événement `NkFileDropEvent` (non détaillé dans le kit mais c'est le modèle attendu).
+NkEvent/NkWindowEvent.h:65
+5. La fenêtre est redimensionnée. Modèle : push. C'est un événement ponctuel. L'outil est un événement `NkWindowResizeEvent`.
+NkEvent/NkWindowEvent.h:47
+6. Le joueur double-clique. Modèle : push. C'est un événement ponctuel, distinct du simple clic. L'outil est NkMouseDoubleClickEvent.
+NkEvent/NkMouseEvent.h:61
+
+Les deux bogues :
+- Action qui part trois fois (mauvais push) : Si on utilisait le modèle push pour la touche "droite" maintenue, en s'abonnant à NkKeyPressEvent, on recevrait un événement à chaque répétition de la touche, ce qui ferait bouger le personnage par saccades. Le bogue classique est d'utiliser l'événement `keyPressed` au lieu de l'état `IsKeyDown`.
+- Mouvement qui s'arrête trop tôt (mauvais pull) : Si on utilisait le modèle pull pour un clic de souris, en testant `mousePos` et `mouseDown` à chaque image, on pourrait rater un clic très rapide qui commence et se termine entre deux images. Le bogue classique est de ne pas traiter les événements ponctuels.

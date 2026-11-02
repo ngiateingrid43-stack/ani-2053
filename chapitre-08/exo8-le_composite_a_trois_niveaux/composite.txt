@@ -1,0 +1,15 @@
+La hiérarchie :
+Niveau 1 (parent) : position (100, 100).
+Niveau 2 (enfant) : position (50, 0), rotation de 90°.
+Niveau 3 (sprite) : position (0, 0).
+
+Attendu :
+L'origine du sprite, qui est en (0,0) dans son repère local, subit d'abord la transformation du niveau 2. Une rotation de 90° autour de l'origine, puis une translation de (50,0), place l'origine en (50,0). Ensuite, la transformation du niveau 1 ajoute une translation de (100,100). La position finale attendue est donc (150, 100).
+
+Mesuré :
+- Sonde (correcte) : La sonde, qui compose correctement les transformations, a mesuré une position de (150.000000, 100.000000).
+- Image : La capture `capture.png` n'a pas été produite car le backend OpenGL n'implémente pas la capture d'image sur cette plateforme. La mesure par la sonde est notre seule preuve.
+- Debug et Release : Les deux configurations ont produit la même mesure.
+
+Le défaut :
+La sonde défectueuse, qui jette l'état reçu et ne garde que sa propre transformation, a mesuré une position de (200.000000, 200.000000). Son test aurait attrapé le défaut car la position attendue (150,100) est différente de celle mesurée par la sonde (200,200). Le test compare la position attendue à la position mesurée, et l'écart révèle que la transformation du parent n'est pas appliquée.

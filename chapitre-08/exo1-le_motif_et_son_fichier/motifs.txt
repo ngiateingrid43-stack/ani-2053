@@ -1,0 +1,34 @@
+Stratégie :
+Le comportement de rendu est interchangeable (OpenGL, DX11, etc.) derrière l'interface NkIRenderer2D.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp:83
+
+Fabrique :
+La classe NkRenderer2DFactory centralise la création des renderers. Les classes concrètes ne sont nommées que dans ce fichier.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp:52
+
+Façade :
+NkRenderTarget (et sa spécialisation NkRenderWindow) est une porte simple qui cache la complexité du contexte graphique, du renderer 2D et du cycle de vie des ressources.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Targets/NkRenderWindow.h:32
+
+Patron de méthode :
+La classe de base NkCanvasApp impose l'ordre de la boucle principale : on ne peut pas redéfinir OnRender, mais on remplit les crochets OnUpdate et OnRender qui sont appelés dans un ordre précis.
+Kernel/Runtime/NKCanvas/src/NKCanvas/App/NkCanvasGuiApp.h:12
+
+Observateur :
+Le système d'événements (NKEvent) permet à des lambdas de s'abonner à des événements (NkMouseButtonPressEvent) et d'être appelés lorsque ceux-ci surviennent.
+Applications/NKGuiDemo/src/NKGuiDemo/main.cpp:332
+
+Singleton :
+NkInput est un singleton sans état (il se contente de lire l'état du système) qui est accessible de partout.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Input/NkInput.h:120
+
+Adaptateur :
+NkGuiCanvasBackend fait le pont entre la liste de dessin (NKGuiDrawList) produite par NKGui et les appels de rendu de NkCanvas (NkIRenderer2D).
+Kernel/Runtime/NKCanvas/src/NKCanvas/UI/NkGuiCanvasBackend.h:11
+
+Composite :
+NkSprite et les autres NkDrawable peuvent être composés et dessinés récursivement, chaque enfant recevant l'état (transformations) de son parent.
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Resources/NkSprite.cpp:213
+
+Commande :
+Il n'y a pas de motif Commande explicite dans les en-têtes du kit. L'implémentation la plus proche est le système d'événements (NKEvent) où chaque événement est un objet qui encapsule une action (le clic), mais il n'est ni "stocké" ni "rejoué" comme le voudrait le motif. Les actions sont directement exécutées par les callbacks.

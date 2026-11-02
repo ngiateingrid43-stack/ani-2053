@@ -1,0 +1,24 @@
+Publiques :
+J'ai compté 23 méthodes publiques dans NkRenderTarget.h. Pour compter les surcharges, j'ai considéré chaque signature unique. Par exemple, `void Clear()` et `void Clear(const NkColor2D&)` sont comptées comme deux méthodes. La liste est : Clear, Begin, End, Display, GetSize, GetWindow, OnResize, GetRenderer, GetRenderer2D, GetContext, IsValid, Capture, CaptureToImage, SetView, GetView, SetViewport, GetViewport, PushClip, PopClip, ResetClip, GetClip, HasClip, SetClearColor.
+
+Utiles :
+Les méthodes dont nos programmes de ce sprint se servent, directement ou via la boucle de NkCanvasApp, sont :
+- Clear (appelée par NkCanvasApp)
+- Display (appelée par NkCanvasApp)
+- GetSize (pour le redimensionnement)
+- OnResize (pour le redimensionnement)
+- GetRenderer (pour initialiser le pont)
+- Begin (appelée par Clear)
+- End (appelée par Display)
+
+Les autres :
+Les autres méthodes sont :
+- GetWindow, GetRenderer2D, GetContext, IsValid : utilisées pour l'introspection.
+- Capture, CaptureToImage : pour la capture d'écran, une fonctionnalité avancée.
+- SetView, GetView, SetViewport, GetViewport : pour personnaliser la caméra 2D, non nécessaire pour une interface simple.
+- PushClip, PopClip, ResetClip, GetClip, HasClip : pour le découpage, mais la version 2D de la façade est rarement utilisée directement; c'est NkGui qui gère son propre découpage.
+- SetClearColor : rarement utilisée, car Clear prend déjà une couleur.
+Aucune de ces méthodes n'est marquée comme provisoire dans les commentaires du fichier.
+
+Le rapport :
+Le rapport entre les méthodes "utiles" (7) et les "autres" (16) est de 7/23, soit moins d'un tiers. La façade expose beaucoup de méthodes qui ne sont pas utilisées par une application typique. La promesse de la façade est de simplifier l'accès au sous-système de rendu. Ici, cette promesse est partiellement tenue pour le cas simple, mais la façade a grossi et expose des fonctionnalités avancées (capture, vues personnalisées) qui la rendent complexe.

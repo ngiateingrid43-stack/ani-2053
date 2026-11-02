@@ -1,0 +1,11 @@
+L'endroit :
+Le motif de Commande est absent. On le voit dans la façon dont les événements sont gérés.
+- `Kernel/Runtime/NKEvent/src/NKEvent/NkEvent.h:45` : les événements ne sont pas des objets qui encapsulent une action, mais des structures de données.
+- `Applications/NKGuiDemo/src/NKGuiDemo/main.cpp:332` : la logique d'action est directement exécutée dans le callback, au lieu d'être encapsulée dans un objet Commande.
+Ce qui se répète, c'est que chaque événement (clic, touche) est traité de manière ad-hoc dans le code du callback, ce qui rend l'annulation ou le rejeu impossibles.
+
+Le motif :
+Le motif Commande conviendrait parfaitement ici. Chaque événement (comme un clic de souris) pourrait être encapsulé dans un objet Commande (par exemple, `NkClickCommand`) qui contient l'action à exécuter (le callback à appeler). Un `NkCommandManager` pourrait ensuite gérer une pile de commandes, permettant de les rejouer ou de les défaire (undo/redo), ou de les mettre en file d'attente pour un traitement différé.
+
+Le coût :
+L'introduction de ce motif coûterait de modifier le système d'événements (NKEvent) pour qu'il produise des objets Commande au lieu de structures de données. Il faudrait aussi modifier tous les endroits où les événements sont traités pour qu'ils passent par un `NkCommandManager`. Cela représenterait un changement profond dans l'architecture, avec un risque de casser la gestion actuelle des événements qui est simple et directe. Le coût est donc élevé, pour un bénéfice qui n'est pas immédiatement nécessaire.

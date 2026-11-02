@@ -1,0 +1,14 @@
+Le premier pont :
+Le fichier est `Kernel/Runtime/NKCanvas/src/NKCanvas/UI/NkGuiCanvasBackend.h`. Il se trouve à la ligne 11. Ses méthodes publiques sont Init, UploadFontGray8, UploadImageRGBA et Submit. Il reçoit une NkGuiDrawList (dans sa méthode Submit) et la traduit en appels NkIRenderer2D.
+
+Le second pont :
+Le second pont dessinerait la même interface dans un fichier image. Au lieu d'appeler `renderer->DrawVertices` de NkCanvas, il appellerait les méthodes de dessin d'une `NkImage` (chapitre 5) : `FillRect`, `DrawLine`, etc.
+
+Combien de méthodes :
+Il faudrait une méthode `Submit` qui reçoit la `NkGuiDrawList` et une `NkImage` cible. La logique serait très similaire au premier pont : itérer sur les commandes, décoder les sommets et indices, et appeler les primitives de dessin de `NkImage` au lieu de celles du renderer 2D. Une seule méthode `Submit` serait nécessaire.
+
+Les données :
+Les données nécessaires sont les mêmes que pour le premier pont : la `NkGuiDrawList` complète (sommets, indices, commandes) et les textures (atlas de police et images) déjà chargées en mémoire. L'`NkImage` cible est fournie par l'appelant.
+
+Dans le kit :
+Non, ce second pont n'existe pas dans les en-têtes du kit. Le kit fournit un adaptateur vers le rendu GPU (NkGuiCanvasBackend), mais pas vers un rendu logiciel dans une image. Il faudrait l'écrire.

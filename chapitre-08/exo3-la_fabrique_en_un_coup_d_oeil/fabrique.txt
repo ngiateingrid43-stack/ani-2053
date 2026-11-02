@@ -1,0 +1,11 @@
+Recherche :
+J'ai utilisé la commande `grep -r "NkOpenGLRenderer2D" include/` depuis la racine du kit. La commande a trouvé 4 fichiers.
+
+Hors de son dossier :
+- `NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp` : ligne 52. C'est la ligne où la classe concrète est instanciée par la fabrique. C'est du code.
+- `NKCanvas/Renderer/Core/NkRenderer2DFactory.h` : ligne 18. C'est un commentaire qui liste les dorsaux disponibles.
+- `NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp` : ligne 84. C'est un commentaire qui explique pourquoi le backend Metal n'est pas implémenté.
+- `NKCanvas/Backend/OpenGL/NkOpenGLRenderer2D.h` : ligne 1. C'est la ligne de `#include` dans son propre dossier.
+
+Conclusion :
+La fabrique `NkRenderer2DFactory` fait bien son travail. En dehors du dossier du dorsal OpenGL, seule la fabrique elle-même (`NkRenderer2DFactory.cpp`) nomme la classe concrète `NkOpenGLRenderer2D` dans du code. Les autres occurrences sont soit des commentaires, soit des références dans le propre en-tête du dorsal. Cela confirme que le choix de la classe concrète est centralisé dans la fabrique.

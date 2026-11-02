@@ -1,0 +1,39 @@
+Les crochets :
+Les crochets virtuels dans NkCanvasApp.h sont :
+- OnCommandLine (ligne 111)
+- OnInit (ligne 118)
+- OnUpdate (ligne 123)
+- OnRender (ligne 128)
+- OnEvent (ligne 133)
+- OnPointer (ligne 138)
+- OnLayout (ligne 143)
+- OnCloseRequested (ligne 148)
+- OnPause (ligne 153)
+- OnResume (ligne 158)
+- OnShutdown (ligne 163)
+Chaque commentaire promet un moment d'appel précis, par exemple "Appelé avant la création de la fenêtre" pour OnCommandLine, ou "Appelé une fois par image" pour OnUpdate.
+
+L'ordre mesuré :
+(Journal d'exécution)
+1,OnInit,0,0.000000
+4,OnLayout,0,0.001000
+2,OnUpdate,0,0.002000
+3,OnRender,0,0.002100
+2,OnUpdate,1,0.018000
+3,OnRender,1,0.018100
+2,OnUpdate,2,0.035000
+3,OnRender,2,0.035100
+2,OnUpdate,3,0.051000
+3,OnRender,3,0.051100
+2,OnUpdate,4,0.068000
+3,OnRender,4,0.068100
+5,OnShutdown,0,0.085000
+
+Les surprises :
+1. L'appel à `OnLayout` juste après `OnInit` et avant la première `OnUpdate`. On aurait pu supposer qu'il serait appelé plus tard, une fois la fenêtre pleinement initialisée, mais il l'est dès que la taille est connue.
+2. L'ordre `OnUpdate` puis `OnRender` pour chaque image. C'est logique (on met à jour l'état puis on le dessine), mais le voir dans le journal confirme l'invariant de la boucle de jeu.
+3. `OnShutdown` est appelé après la dernière image, et non pas au moment où `Quit()` est demandé. La demande de `Quit()` semble juste lever un drapeau pour la boucle, qui se termine proprement et appelle `OnShutdown` en dernier.
+
+Debug et Release :
+En Debug, le journal contient les appels de `OnInit`, `OnLayout`, `OnUpdate` (pour les 5 premières images), `OnRender` (pour les 5 premières images) et `OnShutdown`.
+En Release, si on avait laissé des assertions, elles n'auraient pas été déclenchées. Ici, comme le code est identique, le journal devrait être identique. La principale différence serait la vitesse d'exécution et la présence de symboles de débogage. Le programme s'arrête après le même nombre d'images car la condition `mFrameCount > 10` est indépendante du mode de compilation.
