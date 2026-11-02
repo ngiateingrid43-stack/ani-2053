@@ -1,11 +1,14 @@
 L'endroit :
-Le motif de Commande est absent. On le voit dans la façon dont les événements sont gérés.
-- `Kernel/Runtime/NKEvent/src/NKEvent/NkEvent.h:45` : les événements ne sont pas des objets qui encapsulent une action, mais des structures de données.
-- `Applications/NKGuiDemo/src/NKGuiDemo/main.cpp:332` : la logique d'action est directement exécutée dans le callback, au lieu d'être encapsulée dans un objet Commande.
-Ce qui se répète, c'est que chaque événement (clic, touche) est traité de manière ad-hoc dans le code du callback, ce qui rend l'annulation ou le rejeu impossibles.
+Le motif Commande est absent. Les événements NkEvent encapsulent une action (un clic, une touche), mais ils ne sont ni stockés, ni rejoués, ni défaits. Les callbacks sont exécutés immédiatement par DispatchToCallbacks (NkEvent.h:319).
+
+Deux fichiers montrent l'absence :
+- include/NKEvent/NkEvent.h:319 : la classe NkEvent ne contient aucune méthode Undo, Replay, ou Execute différé.
+- include/NKEvent/NkWindowEvent.h:290 : NkWindowResizeEvent (par exemple) est une struct de données pure, sans comportement.
+
+Ce qui se répète : chaque événement (clic, touche, redimensionnement) est traité de manière ad-hoc dans le code du callback, sans passer par une abstraction Commande.
 
 Le motif :
-Le motif Commande conviendrait parfaitement ici. Chaque événement (comme un clic de souris) pourrait être encapsulé dans un objet Commande (par exemple, `NkClickCommand`) qui contient l'action à exécuter (le callback à appeler). Un `NkCommandManager` pourrait ensuite gérer une pile de commandes, permettant de les rejouer ou de les défaire (undo/redo), ou de les mettre en file d'attente pour un traitement différé.
+Le motif Commande conviendrait. Chaque événement pourrait être encapsulé dans un objet Commande (NkClickCommand, NkKeyCommand) qui contient l'action à exécuter et sait la défaire. Un NkCommandManager pourrait gérer une pile de commandes, permettant undo/redo.
 
 Le coût :
-L'introduction de ce motif coûterait de modifier le système d'événements (NKEvent) pour qu'il produise des objets Commande au lieu de structures de données. Il faudrait aussi modifier tous les endroits où les événements sont traités pour qu'ils passent par un `NkCommandManager`. Cela représenterait un changement profond dans l'architecture, avec un risque de casser la gestion actuelle des événements qui est simple et directe. Le coût est donc élevé, pour un bénéfice qui n'est pas immédiatement nécessaire.
+Modifier NkEvent pour qu'il produise des Commande au lieu de structs de données. Modifier tous les callbacks pour passer par un NkCommandManager. Risque de casser la gestion actuelle des événements, qui est simple et directe (DispatchToCallbacks immédiat). Le coût est élevé pour un bénéfice qui n'est pas immédiatement nécessaire dans un jeu ou une interface simple.

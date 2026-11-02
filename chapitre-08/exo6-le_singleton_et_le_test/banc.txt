@@ -1,16 +1,16 @@
 Tester la version directe :
-Pour tester la version directe, il faudrait simuler l'appui sur la barre d'espace. Comme NkInput est un singleton qui lit l'état du système, on ne peut pas lui fournir un faux état d'entrée. Il faudrait soit modifier NkInput pour qu'il ait un mode test, soit utiliser un outil d'automatisation qui envoie de vrais événements clavier à la fenêtre. Ce coût est élevé car il nécessite une infrastructure externe au programme.
+NkInput est un singleton global. Une fonction qui l'interroge directement ne peut pas être testée sans fournir un faux état d'entrée, ce qui exigerait de modifier NkInput lui-même (mode test) ou d'utiliser un outil d'automatisation qui envoie de vrais événements clavier. Le coût est élevé car cela sort du périmètre de la fonction.
 
 La version testable :
-J'ai réécrit la fonction pour qu'elle prenne l'état du joueur et de la touche en paramètres (deux booléens). La règle (sauter si au sol et espace) est conservée, mais elle ne lit plus le singleton NkInput. Elle est maintenant une simple fonction logique `TestSautLogique(bool auSol, bool espace)`, qui peut être testée avec n'importe quelle combinaison d'entrées.
+J'ai réécrit la fonction pour qu'elle prenne l'état du joueur et de la touche en paramètres (deux booléens). La règle est conservée (sauter si au sol et espace), mais elle ne lit plus le singleton. Elle est maintenant une fonction logique pure, testable avec n'importe quelle combinaison d'entrées.
 
 Le banc :
-Le banc a été construit en Debug et en Release. Il écrit ses résultats dans `banc_resultats.txt`. Voici les résultats :
+Le banc est construit via NkCanvasApp::OnCommandLine (NkCanvasApp.h:220), qui rend un NkOptional<int> (NkOptional.h:144). Il écrit ses résultats dans banc_resultats.txt. Voici les résultats :
 Saut quand au sol et espace: OK
-Pas de saut quand en l'air et espace: OK
-Pas de saut quand au sol sans espace: OK
-Pas de saut quand en l'air sans espace: OK
+Pas de saut en l'air avec espace: OK
+Pas de saut au sol sans espace: OK
+Pas de saut en l'air sans espace: OK
 Le code de sortie est 0 (aucun échec).
 
 Sans fenêtre :
-La version directe, exécutée via le banc, n'a pas pu être testée car l'appel à `NkInput.IsKeyDown` sur une machine sans fenêtre (ou avant que la fenêtre ne soit créée) n'a pas de sens. Le singleton n'est pas initialisé et son comportement est indéfini, probablement un retour `false` constant. C'est la raison pour laquelle elle n'est pas dans le banc.
+La version directe n'est pas dans le banc car NkInput n'existe pas dans le kit fourni (include/). Elle est citée dans le .cpp en commentaire (documentée), mais pas compilée. C'est une limite du kit, pas un défaut du banc.

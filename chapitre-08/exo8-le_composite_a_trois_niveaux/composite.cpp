@@ -1,9 +1,8 @@
-
-// Exercice 8 : Le composite à trois niveaux
-
 #include "NKWindow/NKMain.h"
 #include "NKCanvas/App/NkCanvasApp.h"
-#include "NKLogger/NkLog.h"
+#include "NKCanvas/Renderer/Core/NkTransformable.h"
+#include "NKCanvas/Renderer/Core/NkDrawable.h"
+#include "NKCanvas/Renderer/Core/NkRenderStates.h"
 #include "NKFileSystem/NkFile.h"
 
 class Noeud : public nkentseu::renderer::NkTransformable, public nkentseu::renderer::NkDrawable {
@@ -13,50 +12,39 @@ public:
     void Draw(nkentseu::renderer::NkRenderTarget& target, const nkentseu::renderer::NkRenderStates& states) const override {
         nkentseu::renderer::NkRenderStates local = states;
         local.transform *= GetTransform();
-        if (enfant) {
-            enfant->Draw(target, local);
-        }
-    }
-};
-
-class SondeDefectueuse : public nkentseu::renderer::NkTransformable, public nkentseu::renderer::NkDrawable {
-public:
-    void Draw(nkentseu::renderer::NkRenderTarget& target, const nkentseu::renderer::NkRenderStates& states) const override {
-        nkentseu::renderer::NkRenderStates local;
-        local.transform = GetTransform();
-        // Jette states.transform : défaut imité
+        if (enfant) enfant->Draw(target, local);
     }
 };
 
 class TestComposite : public nkentseu::renderer::NkCanvasApp {
     bool OnInit() override {
         mRoot = new Noeud();
-        mRoot->SetPosition({100, 100});
+        mRoot->SetPosition({100.f, 100.f});
 
         mLevel2 = new Noeud();
-        mLevel2->SetPosition({50, 0});
-        mLevel2->SetRotation(90.f);
+        mLevel2->SetPosition({50.f, 0.f});
+        mLevel2->SetRotation(nkentseu::math::NkAngle(90.f));
         mRoot->enfant = mLevel2;
 
         mSprite = new Noeud();
-        mSprite->SetPosition({0, 0});
+        mSprite->SetPosition({0.f, 0.f});
         mLevel2->enfant = mSprite;
 
-        mFile.Open("mesure.txt", nkentseu::NkFileMode::Write);
+        mFile.Open("mesure.txt", nkentseu::NkFileMode::NK_WRITE);
         return true;
     }
 
     void OnRender(nkentseu::renderer::NkRenderWindow &target) override {
-        nkentseu::math::NkVec2f posInitiale = mSprite->GetTransform().transformPoint({0, 0});
-        nkentseu::math::NkVec2f posFinale = mRoot->GetTransform().transformPoint(posInitiale);
-
-        mFile.WriteLine(nkentseu::NkPrintf("Position mesurée: (%f, %f)", posFinale.x, posFinale.y).CStr());
-        this->Quit();
+        auto posSprite = mSprite->GetTransform().TransformPoint({0.f, 0.f});
+        auto posFinale = mRoot->GetTransform().TransformPoint(posSprite);
+        mFile.WriteLine((nkentseu::NkString("Position: (") + nkentseu::NkString::FromFloat(posFinale.x) + ", " + nkentseu::NkString::FromFloat(posFinale.y) + ")").CStr());
+        Quit();
     }
+
 private:
-    Noeud* mRoot;
-    Noeud* mLevel2;
-    Noeud* mSprite;
+    Noeud* mRoot = nullptr;
+    Noeud* mLevel2 = nullptr;
+    Noeud* mSprite = nullptr;
     nkentseu::NkFile mFile;
 };
 

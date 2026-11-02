@@ -1,15 +1,17 @@
 La hiérarchie :
-Niveau 1 (parent) : position (100, 100).
-Niveau 2 (enfant) : position (50, 0), rotation de 90°.
+Niveau 1 (racine) : position (100, 100).
+Niveau 2 (enfant) : position (50, 0), rotation 90°.
 Niveau 3 (sprite) : position (0, 0).
 
 Attendu :
-L'origine du sprite, qui est en (0,0) dans son repère local, subit d'abord la transformation du niveau 2. Une rotation de 90° autour de l'origine, puis une translation de (50,0), place l'origine en (50,0). Ensuite, la transformation du niveau 1 ajoute une translation de (100,100). La position finale attendue est donc (150, 100).
+L'origine du sprite, en (0,0) local, subit la rotation 90° du niveau 2 (reste en (0,0)), puis la translation (50,0) du niveau 2 (donne (50,0)), puis la translation (100,100) du niveau 1 (donne (150,100)). La position attendue est donc (150, 100).
 
 Mesuré :
-- Sonde (correcte) : La sonde, qui compose correctement les transformations, a mesuré une position de (150.000000, 100.000000).
-- Image : La capture `capture.png` n'a pas été produite car le backend OpenGL n'implémente pas la capture d'image sur cette plateforme. La mesure par la sonde est notre seule preuve.
-- Debug et Release : Les deux configurations ont produit la même mesure.
+Position mesurée par la sonde (compose correctement les transformations) : (150.0, 100.0).
+La capture image n'a pas été produite (le backend OpenGL ne supporte pas CaptureToImage).
+En Debug et Release, la mesure est identique.
 
 Le défaut :
-La sonde défectueuse, qui jette l'état reçu et ne garde que sa propre transformation, a mesuré une position de (200.000000, 200.000000). Son test aurait attrapé le défaut car la position attendue (150,100) est différente de celle mesurée par la sonde (200,200). Le test compare la position attendue à la position mesurée, et l'écart révèle que la transformation du parent n'est pas appliquée.
+Le commentaire de NkSprite.h (l.15-17) documente le défaut corrigé : "Leur Draw(target, states) JETAIT l'etat recu : le parametre etait commente. Un sprite ne pouvait donc pas etre l'enfant d'un objet transforme, alors qu'une forme le pouvait."
+
+Si on reproduit le défaut (une sonde qui ne garde que son propre transform, sans composer avec l'état reçu), la position mesurée serait (200, 200) au lieu de (150, 100). Le test compare la position attendue à la position mesurée : l'écart (50, 100) révèle que la transformation du parent n'a pas été appliquée.

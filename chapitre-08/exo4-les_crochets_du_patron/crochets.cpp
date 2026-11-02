@@ -1,8 +1,6 @@
-
-// Exercice 4 : Les crochets du patron de méthode
-
 #include "NKWindow/NKMain.h"
 #include "NKCanvas/App/NkCanvasApp.h"
+#include "NKCanvas/Renderer/Targets/NkRenderWindow.h"
 #include "NKLogger/NkLog.h"
 #include <cstdio>
 
@@ -10,36 +8,31 @@ class MonJeu : public nkentseu::renderer::NkCanvasApp {
 public:
     bool OnInit() override {
         mJournal = fopen("journal_crochets.txt", "w");
-        if (!mJournal) {
-            nkentseu::logger.Error("Impossible d'ouvrir le journal.");
-            return false;
-        }
-        fprintf(mJournal, "1,OnInit,%d,%f\n", 0, nkentseu::NkTime::Time());
+        if (!mJournal) return false;
+        fprintf(mJournal, "1,OnInit,%d,%f\n", 0, Time());
         return true;
     }
 
     void OnUpdate(float32 deltaTime) override {
         if (mFrameCount < 5) {
-            fprintf(mJournal, "2,OnUpdate,%d,%f\n", mFrameCount, nkentseu::NkTime::Time());
+            fprintf(mJournal, "2,OnUpdate,%d,%f\n", mFrameCount, Time());
         }
         mFrameCount++;
     }
 
     void OnRender(nkentseu::renderer::NkRenderWindow &target) override {
         if (mFrameCount < 5) {
-            fprintf(mJournal, "3,OnRender,%d,%f\n", mFrameCount, nkentseu::NkTime::Time());
+            fprintf(mJournal, "3,OnRender,%d,%f\n", mFrameCount, Time());
         }
-        if (mFrameCount > 10) {
-            this->Quit();
-        }
+        if (mFrameCount > 10) Quit();
     }
 
     void OnLayout(const nkentseu::NkLayoutInfo &layout) override {
-        fprintf(mJournal, "4,OnLayout,%d,%f\n", 0, nkentseu::NkTime::Time());
+        fprintf(mJournal, "4,OnLayout,%d,%f\n", 0, Time());
     }
 
     void OnShutdown() override {
-        fprintf(mJournal, "5,OnShutdown,%d,%f\n", 0, nkentseu::NkTime::Time());
+        fprintf(mJournal, "5,OnShutdown,%d,%f\n", 0, Time());
         fclose(mJournal);
     }
 

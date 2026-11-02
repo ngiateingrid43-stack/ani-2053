@@ -1,34 +1,35 @@
 Stratégie :
-Le comportement de rendu est interchangeable (OpenGL, DX11, etc.) derrière l'interface NkIRenderer2D.
-Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp:83
+L'interface NkIRenderer2D est une stratégie interchangeable : cinq dorsaux l'implémentent, et la fabrique choisit à l'exécution. La ligne qui compte est la classe de base elle-même.
+include/NKCanvas/Renderer/Core/NkIRenderer2D.h:37
 
 Fabrique :
-La classe NkRenderer2DFactory centralise la création des renderers. Les classes concrètes ne sont nommées que dans ce fichier.
-Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Core/NkRenderer2DFactory.cpp:52
+NkRenderer2DFactory::Create est la seule fonction qui choisit la classe concrète du dorsal. Aucune autre fonction du kit ne nomme NkOpenGLRenderer2D, NkVulkanRenderer2D, etc.
+include/NKCanvas/Renderer/Core/NkRenderer2DFactory.h:37
 
 Façade :
-NkRenderTarget (et sa spécialisation NkRenderWindow) est une porte simple qui cache la complexité du contexte graphique, du renderer 2D et du cycle de vie des ressources.
-Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Targets/NkRenderWindow.h:32
+NkRenderTarget est une porte simple devant un sous-système complexe (contexte GPU + renderer 2D + cycle de vie). Trois appels (Clear, Draw, Display) suffisent au cas courant.
+include/NKCanvas/Renderer/Targets/NkRenderTarget.h:26
 
 Patron de méthode :
-La classe de base NkCanvasApp impose l'ordre de la boucle principale : on ne peut pas redéfinir OnRender, mais on remplit les crochets OnUpdate et OnRender qui sont appelés dans un ordre précis.
-Kernel/Runtime/NKCanvas/src/NKCanvas/App/NkCanvasGuiApp.h:12
+NkCanvasApp impose un ordre d'appel fixe via ses méthodes virtuelles. L'application remplit OnInit, OnUpdate, OnRender, OnLayout, OnShutdown — elle ne décide pas quand elles sont appelées.
+include/NKCanvas/App/NkCanvasApp.h:118
 
 Observateur :
-Le système d'événements (NKEvent) permet à des lambdas de s'abonner à des événements (NkMouseButtonPressEvent) et d'être appelés lorsque ceux-ci surviennent.
-Applications/NKGuiDemo/src/NKGuiDemo/main.cpp:332
+Le système d'événements (NkEvent) permet à des lambdas de s'abonner et d'être appelés quand un événement survient. DispatchToCallbacks est appelé depuis DeliverOnPumpThread.
+include/NKEvent/NkEvent.h:319
 
 Singleton :
-NkInput est un singleton sans état (il se contente de lire l'état du système) qui est accessible de partout.
-Kernel/Runtime/NKCanvas/src/NKCanvas/Input/NkInput.h:120
+NkGuiInput n'est pas un singleton, mais NkInput l'est (documenté dans le cours). Je n'ai pas le fichier NkInput.h dans le kit, donc je cite la struct NkGuiInput comme mécanisme équivalent (état d'entrée accessible globalement).
+include/NKGui/Core/NkGuiInput.h:37
 
 Adaptateur :
-NkGuiCanvasBackend fait le pont entre la liste de dessin (NKGuiDrawList) produite par NKGui et les appels de rendu de NkCanvas (NkIRenderer2D).
-Kernel/Runtime/NKCanvas/src/NKCanvas/UI/NkGuiCanvasBackend.h:11
+NkGuiCanvasBackend::Submit traduit une NkGuiDrawList (produite par NKGui) en appels NkIRenderer2D (NkCanvas). NKGui ne connaît pas NkCanvas ; NKCanvas ne connaît pas NKGui.
+include/NKCanvas/UI/NkGuiCanvasBackend.h:137
 
 Composite :
-NkSprite et les autres NkDrawable peuvent être composés et dessinés récursivement, chaque enfant recevant l'état (transformations) de son parent.
-Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Resources/NkSprite.cpp:213
+NkShape hérite de NkTransformable et NkDrawable, et compose l'état reçu avec le sien. NkSprite fait de même depuis la correction documentée dans son en-tête.
+include/NKCanvas/Renderer/Shapes/NkShape.h:35
 
 Commande :
-Il n'y a pas de motif Commande explicite dans les en-têtes du kit. L'implémentation la plus proche est le système d'événements (NKEvent) où chaque événement est un objet qui encapsule une action (le clic), mais il n'est ni "stocké" ni "rejoué" comme le voudrait le motif. Les actions sont directement exécutées par les callbacks.
+Le motif Commande est absent. Les événements (NkEvent) encapsulent une action, mais ils ne sont ni stockés ni rejoués — les callbacks sont exécutés immédiatement. La preuve est que NkEvent ne contient pas de méthode Undo, Replay ou Execute différé.
+include/NKEvent/NkEvent.h:319
