@@ -1,0 +1,1 @@
+Kernel/System/NKThreading/src/NKThreading/NkSpinLock.cpp:24:29: warning: unused variable 'variableInutilisee' [-Wunused-variable]
