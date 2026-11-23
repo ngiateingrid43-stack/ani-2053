@@ -1,0 +1,5 @@
+commit : 83b50fa
+Les miroirs : NkSprite::SetFlipX, SetFlipY, GetFlipX, GetFlipY et les champs mFlipX, mFlipY. SetFlipX est appele une seule fois dans tout le depot, Applications/NkRef/src/NkRef/main.cpp:1823, juste avant le dessin du sprite. Aucun fichier du Kernel ne lit ces champs pour decider de quelque chose : la seule lecture de GetFlipX, qui est dans le chemin de dessin, date de bc27f36c le 2026-09-10, et avant ce commit il n'y avait qu'une ligne commentee a la place (7461c22, la ligne 308 de NkBatchRenderer2D.cpp). Le drapeau part donc a la poubelle a chaque image.
+Membre 1 : NkSprite::mFlipX
+Membre 2 : NkSprite::mFlipY
+Membre 3 : NkCanvasApp::mHasFocus

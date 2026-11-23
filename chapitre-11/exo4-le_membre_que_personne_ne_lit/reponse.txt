@@ -1,0 +1,19 @@
+Membre : NkSprite::mFlipX
+Écrit dans : NkSprite::SetFlipX (NkSprite.h:74), appelé une seule fois dans tout le dépôt, Applications/NkRef/src/NkRef/main.cpp:1823, avant le dessin du sprite de la planche.
+Lu par : NkSprite::GetFlipX (NkSprite.cpp:51). Et GetFlipX n'a qu'un appelant : NkBatchRenderer2D.cpp:623, ajouté par bc27f36c le 2026-09-10, où il échange uvTL.x et uvBR.x avant de remplir le tampon de sommets.
+Verdict : ENCORE VRAIE
+Preuve : git grep "GetFlipX" 7461c22 -- donne trois résultats : la déclaration et la définition du getter, et, à la place de l'appel, une ligne commentée, NkBatchRenderer2D.cpp:308. Le commit précédent, bc27f36c, date du 2026-09-10 et son message dit exactement ce qui a été corrigé : SetFlipX et SetFlipY existaient et ne faisaient rien, NkRef seule application à s'en servir avait des miroirs inopérants. Aujourd'hui la chaîne est complète depuis main.cpp:1823 jusqu'aux coordonnées de texture.
+
+Membre : NkSprite::mFlipY
+Écrit dans : NkSprite::SetFlipY (NkSprite.h:78), appelé au même endroit que SetFlipX, Applications/NkRef/src/NkRef/main.cpp:1824.
+Lu par : NkSprite::GetFlipY (NkSprite.cpp:55), appelé par NkBatchRenderer2D.cpp:628, qui échange uvTL.y et uvBR.y.
+Verdict : ENCORE VRAIE
+Preuve : les deux miroirs ont été rétablis par le même commit et suivent le même chemin. La différence avec mFlipX est seulement l'axe : le drapeau de X échange les colonnes de la texture, celui de Y échange ses lignes, et les deux sont lus dans le même bloc de NkBatchRenderer2D.cpp, aux lignes 623 et 628.
+
+Membre : NkCanvasApp::mHasFocus
+Écrit dans : NkCanvasApp.cpp:179, dans le rappel NkWindowFocusLostEvent, et NkCanvasApp.cpp:187, dans le rappel NkWindowFocusGainedEvent.
+Lu par : Personne. Sur tout le dépôt, l'identifiant n'apparaît que trois fois : ces deux écritures et sa déclaration à NkCanvasApp.h:413. Il n'y a ni getter public, ni lecture dans le corps de la classe, ni accès depuis les applications du dépôt. Le focus perdu ne sert donc jamais à autre chose qu'à mettre le champ à jour et à le laisser en place.
+Verdict : OUBLIÉE
+Preuve : un grep sur le dépôt entier, en incluant Applications et Externals, ne rend que ces trois lignes. L'information qui compte à ces deux endroits, c'est la pause, et elle est déjà portée par mPaused puis par OnPause et OnResume ; mHasFocus double cette information sans que rien ne la relise. Membres morts retenus, aucun ne demande une modification du moteur : mFlipX et mFlipY sont vivants depuis bc27f36c, mHasFocus est mort par oubli et non par choix.
+
+Ce que la lecture seule n'aurait pas montré : mFlipX et mFlipY sont l'exemple le plus net du contraire de ce que l'exercice fait chercher. En lisant NkSprite.h, SetFlipX range son argument dans mFlipX et GetFlipX le ressort : le membre est écrit et lu, la comptabilité est propre, rien ne signale un défaut. C'est le chemin de dessin qui dit la vérité, et il ne se lit qu'en dehors de la classe : à 7461c22, NkBatchRenderer2D.cpp:308 était une ligne commentée, GetFlipX n'avait aucun appelant, et le drapeau mourait entre le réglage et l'affichage sans qu'aucun test ne s'en aperçoive, parce qu'aucun test ne regarde les pixels. Ce cas montre aussi la limite de la recherche : deux miroirs inopérants depuis toujours ne se voient pas sur une capture d'écran d'une planche non retournée. À l'inverse, mHasFocus est mort d'une autre façon : il est écrit dans un rappel d'événement, personne ne le lit, et supprimer le champ ne changerait pas une ligne du comportement, alors que le brancher sur quelque chose demanderait de décider quoi faire du focus perdu, ce que le code ne dit pas. Lire le moteur m'a donc appris deux choses distinctes : un membre peut être lu et rester mort, et un membre peut être écrit et rester mort.

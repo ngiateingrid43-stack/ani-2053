@@ -1,0 +1,20 @@
+10
+grille 800 100 OBSERVEE
+palette 600 200 MESUREE
+calques 1200 900 MESUREE
+ombre 400 700 SUPPOSEE
+raccourcis 900 400 OBSERVEE
+export 1500 1100 SUPPOSEE
+planche 700 500 MESUREE
+historique 650 800 OBSERVEE
+zoom 300 250 MESUREE
+recadrage 200 1400 OBSERVEE
+8
+grille
+palette
+calques
+raccourcis
+export
+planche
+historique
+zoom
