@@ -1,151 +1,124 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace {
 
-const int kMaxTaches = 100000;
-const int kMaxNom = 32;
-const int kTampon = 1 << 20;
+std::vector<char> g_tampon;
+std::vector<char *> g_jetons;
+size_t g_courant = 0;
 
-char gTampon[kTampon];
-int gAt = 0;
-int gLen = 0;
+void ChargerEntree() {
+        char bloc[1 << 16];
+        size_t lu = 0;
+        while ((lu = std::fread(bloc, 1, sizeof(bloc), stdin)) > 0)
+                g_tampon.insert(g_tampon.end(), bloc, bloc + lu);
+        g_tampon.push_back('\0');
 
-void Remplir() {
-        if (gAt < gLen)
-                return;
-        gLen = (int)fread(gTampon, 1, kTampon, stdin);
-        gAt = 0;
-}
-
-char LireChar() {
-        Remplir();
-        if (gAt >= gLen)
-                return 0;
-        return gTampon[gAt++];
-}
-
-void LireMot(char *dst, int cap) {
-        int n = 0;
-        char c = LireChar();
-        while (c != 0 && c != ' ' && c != '\n' && c != '\r' && c != '\t') {
-                if (n < cap - 1)
-                        dst[n++] = c;
-                c = LireChar();
+        char *p = g_tampon.data();
+        char *fin = p + g_tampon.size();
+        while (p < fin) {
+                while (p < fin && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n'))
+                        *p++ = '\0';
+                if (p >= fin || *p == '\0')
+                        break;
+                g_jetons.push_back(p);
+                while (p < fin && *p != '\0' && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n')
+                        ++p;
         }
-        dst[n] = 0;
 }
 
-long long LireEntier() {
-        char mot[32];
-        LireMot(mot, sizeof(mot));
-        return strtoll(mot, nullptr, 10);
+const char *Jeton() {
+        if (g_courant >= g_jetons.size())
+                return "";
+        return g_jetons[g_courant++];
 }
 
-int LireInt() {
-        return (int)LireEntier();
-}
+long long JetonNombre() { return std::strtoll(Jeton(), nullptr, 10); }
 
-void Ecrire(const char *txt) {
-        fputs(txt, stdout);
-}
+bool Egal(const char *a, const char *b) { return std::strcmp(a, b) == 0; }
 
-void EcrireEntier(long long v) {
-        char txt[24];
-        int n = 0;
-        if (v == 0) {
-                txt[n++] = '0';
-        } else {
-                char tmp[24];
-                int m = 0;
-                while (v > 0) {
-                        tmp[m++] = (char)('0' + (int)(v % 10));
-                        v /= 10;
-                }
-                while (m > 0)
-                        txt[n++] = tmp[--m];
-        }
-        txt[n] = 0;
-        Ecrire(txt);
-}
-
-void EcrireDuree(long long ms) {
-        if (ms < 0)
-                ms = 0;
-        const long long secondes = ms / 1000;
+/// Ecrit un nombre de secondes en minutes:secondes, secondes sur deux chiffres.
+void EcrireMinutes(long long secondes) {
         const long long minutes = secondes / 60;
         const long long reste = secondes % 60;
-        EcrireEntier(minutes);
-        Ecrire(":");
         if (reste < 10)
-                Ecrire("0");
-        EcrireEntier(reste);
+                std::printf("%lld:0%lld", minutes, reste);
+        else
+                std::printf("%lld:%lld", minutes, reste);
 }
 
-struct Tache {
-        char nom[kMaxNom];
-        long long debut;
-        long long fin;
-        int gestes;
-        int enTrop;
+struct NkTache {
+        const char *nom = "";
+        long long minimum = 0;
+        long long parJour = 0;
+        long long debut = 0;
+        long long gestes = 0;
+        long long attente = 0;
+        bool enCours = false;
 };
-
-Tache gTaches[kMaxTaches];
-
-void Traiter() {
-        int n = LireInt();
-        if (n < 0)
-                n = 0;
-        if (n > kMaxTaches)
-                n = kMaxTaches;
-
-        for (int i = 0; i < n; ++i) {
-                LireMot(gTaches[i].nom, sizeof(gTaches[i].nom));
-                gTaches[i].debut = LireEntier();
-                gTaches[i].fin = LireEntier();
-                gTaches[i].gestes = LireInt();
-                gTaches[i].enTrop = LireInt();
-        }
-
-        long long finPrecedente = 0;
-        long long finDuJour = 0;
-
-        for (int i = 0; i < n; ++i) {
-                const Tache &t = gTaches[i];
-                long long duree = t.fin - t.debut;
-                if (duree < 0)
-                        duree = 0;
-                long long attente = t.debut - finPrecedente;
-                if (attente < 0)
-                        attente = 0;
-
-                Ecrire(t.nom);
-                Ecrire(" GESTES ");
-                EcrireEntier(t.gestes);
-                Ecrire(" EN_TROP ");
-                EcrireEntier(t.enTrop);
-                Ecrire(" DUREE ");
-                EcrireEntier(duree);
-                Ecrire(" ATTENTE ");
-                EcrireEntier(attente);
-                Ecrire(" JOUR ");
-                EcrireDuree(t.fin);
-                Ecrire("\n");
-
-                finPrecedente = t.fin;
-                if (t.fin > finDuJour)
-                        finDuJour = t.fin;
-        }
-
-        Ecrire("TOTAL_JOUR ");
-        EcrireDuree(finDuJour);
-        Ecrire("\n");
-}
 
 } // namespace
 
 int main() {
-        Traiter();
+        ChargerEntree();
+
+        NkTache courante;
+        bool uneTacheEnCours = false;
+        long long totalSecondes = 0;
+
+        for (;;) {
+                const char *instant = Jeton();
+                if (*instant == '\0')
+                        break;
+                const long long t = std::strtoll(instant, nullptr, 10);
+                const char *quoi = Jeton();
+
+                if (Egal(quoi, "DEBUT")) {
+                        courante = NkTache();
+                        courante.nom = Jeton();
+                        courante.minimum = JetonNombre();
+                        courante.parJour = JetonNombre();
+                        courante.debut = t;
+                        courante.enCours = true;
+                        uneTacheEnCours = true;
+                } else if (Egal(quoi, "FIN")) {
+                        const char *nom = Jeton();
+                        if (!uneTacheEnCours)
+                                continue;
+                        courante.enCours = false;
+                        uneTacheEnCours = false;
+
+                        const long long enTrop = courante.gestes > courante.minimum ? courante.gestes - courante.minimum : 0;
+                        const long long duree = t - courante.debut;
+                        const long long millisecondesJour = courante.attente * courante.parJour;
+                        const long long secondesJour = millisecondesJour / 1000;
+
+                        std::printf("%s GESTES %lld EN_TROP %lld DUREE %lld ATTENTE %lld JOUR ", nom,
+                                    courante.gestes, enTrop, duree, courante.attente);
+                        EcrireMinutes(secondesJour);
+                        std::printf("\n");
+                        totalSecondes += secondesJour;
+                } else if (Egal(quoi, "ATTENTE")) {
+                        const long long d = JetonNombre();
+                        if (uneTacheEnCours)
+                                courante.attente += d;
+                } else if (Egal(quoi, "TOUCHE")) {
+                        Jeton(); // la touche, non utilisee
+                        if (uneTacheEnCours)
+                                ++courante.gestes;
+                } else if (Egal(quoi, "CLIC") || Egal(quoi, "MOLETTE") || Egal(quoi, "GLISSE")) {
+                        if (uneTacheEnCours)
+                                ++courante.gestes;
+                }
+        }
+
+        if (uneTacheEnCours)
+                std::printf("%s INACHEVEE\n", courante.nom);
+
+        std::printf("TOTAL_JOUR ");
+        EcrireMinutes(totalSecondes);
+        std::printf("\n");
         return 0;
 }

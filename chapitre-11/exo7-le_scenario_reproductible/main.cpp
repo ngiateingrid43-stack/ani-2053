@@ -1,240 +1,305 @@
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
+#include <string>
+#include <vector>
 
 namespace {
 
-const int kMaxPas = 100000;
-const int kMaxVariable = 100000;
-const int kMaxNom = 48;
-const int kMaxElement = 32;
 const int kMaxElements = 8;
-const int kTampon = 1 << 20;
 
-char gTampon[kTampon];
-int gAt = 0;
-int gLen = 0;
-
-void Remplir() {
-        if (gAt < gLen)
-                return;
-        gLen = (int)fread(gTampon, 1, kTampon, stdin);
-        gAt = 0;
-}
-
-char LireChar() {
-        Remplir();
-        if (gAt >= gLen)
-                return 0;
-        return gTampon[gAt++];
-}
-
-void LireMot(char *dst, int cap) {
-        int n = 0;
-        char c = LireChar();
-        while (c != 0 && c != ' ' && c != '\n' && c != '\r' && c != '\t') {
-                if (n < cap - 1)
-                        dst[n++] = c;
-                c = LireChar();
-        }
-        dst[n] = 0;
-}
-
-int LireInt() {
-        char mot[32];
-        LireMot(mot, sizeof(mot));
-        return atoi(mot);
-}
-
-void Ecrire(const char *txt) {
-        fputs(txt, stdout);
-}
-
-void EcrireEntier(long long v) {
-        char txt[24];
-        int n = 0;
-        if (v <= 0) {
-                txt[n++] = '0';
-        } else {
-                char tmp[24];
-                int m = 0;
-                while (v > 0) {
-                        tmp[m++] = (char)('0' + (int)(v % 10));
-                        v /= 10;
-                }
-                while (m > 0)
-                        txt[n++] = tmp[--m];
-        }
-        txt[n] = 0;
-        Ecrire(txt);
-}
-
-struct Pas {
-        int tour;
-        char geste[kMaxNom];
-        int nbElements;
-        char elements[kMaxElements][kMaxElement];
-        bool capture;
-        bool garde;
+struct NkAction {
+        enum Genre { Pan, Zoom, Depot, Clic, Move, Pack, Grille, Capture } genre;
+        long tour = 0;
+        long champ[3] = {0, 0, 0};
+        int nchamps = 0;
+        std::string texte;
 };
 
-Pas gPas[kMaxPas];
-int gNbPas = 0;
-
-bool EstUnGeste(const char *mot) {
-        return strcmp(mot, "CLICK") == 0 || strcmp(mot, "DROP") == 0 || strcmp(mot, "DRAG") == 0 ||
-               strcmp(mot, "KEY") == 0 || strcmp(mot, "WAIT") == 0;
-}
-
-void Trier() {
-        for (int i = 1; i < gNbPas; ++i) {
-                const Pas cle = gPas[i];
-                int j = i - 1;
-                while (j >= 0 && gPas[j].tour > cle.tour) {
-                        gPas[j + 1] = gPas[j];
-                        --j;
-                }
-                gPas[j + 1] = cle;
-        }
-}
-
-struct Sortie {
-        int tour;
-        int rang;
-        char texte[kMaxNom + kMaxElement * kMaxElements];
+struct NkDepot {
+        long tour = 0;
+        long px = 0;
+        long py = 0;
+        std::string chemin;
 };
 
-Sortie gSorties[kMaxPas];
-int gNbSorties = 0;
+struct NkClic {
+        long tour = 0;
+        long px = 0;
+        long py = 0;
+};
 
-void Ajouter(int tour, int rang, const char *texte) {
-        if (gNbSorties >= kMaxPas)
-                return;
-        Sortie &s = gSorties[gNbSorties++];
-        s.tour = tour;
-        s.rang = rang;
-        strncpy(s.texte, texte, sizeof(s.texte) - 1);
-        s.texte[sizeof(s.texte) - 1] = 0;
+bool Entier(const std::string &texte, long &valeur) {
+        if (texte.empty())
+                return false;
+        size_t i = 0;
+        if (texte[0] == '-' || texte[0] == '+')
+                ++i;
+        if (i == texte.size())
+                return false;
+        for (size_t k = i; k < texte.size(); ++k)
+                if (texte[k] < '0' || texte[k] > '9')
+                        return false;
+        valeur = std::strtol(texte.c_str(), nullptr, 10);
+        return true;
 }
 
-void TrierSorties() {
-        for (int i = 1; i < gNbSorties; ++i) {
-                const Sortie cle = gSorties[i];
-                int j = i - 1;
-                while (j >= 0 && (gSorties[j].tour > cle.tour ||
-                                  (gSorties[j].tour == cle.tour && gSorties[j].rang > cle.rang))) {
-                        gSorties[j + 1] = gSorties[j];
-                        --j;
+// Coupe sur un separateur, en gardant les morceaux vides.
+void Couper(const std::string &valeur, char separateur, std::vector<std::string> &morceaux) {
+        morceaux.clear();
+        size_t debut = 0;
+        while (debut <= valeur.size()) {
+                const size_t fin = valeur.find(separateur, debut);
+                if (fin == std::string::npos) {
+                        morceaux.push_back(valeur.substr(debut));
+                        return;
                 }
-                gSorties[j + 1] = cle;
+                morceaux.push_back(valeur.substr(debut, fin - debut));
+                debut = fin + 1;
         }
-}
-
-void Traiter() {
-        int n = LireInt();
-        if (n < 0)
-                n = 0;
-        if (n > kMaxVariable)
-                n = kMaxVariable;
-
-        for (int i = 0; i < n && gNbPas < kMaxPas; ++i) {
-                const int tour = LireInt();
-                char geste[kMaxNom];
-                LireMot(geste, sizeof(geste));
-                const int nb = LireInt();
-                Pas &p = gPas[gNbPas];
-                p.tour = tour;
-                p.nbElements = 0;
-                p.capture = (strcmp(geste, "SHOT") == 0);
-                p.garde = p.capture || EstUnGeste(geste);
-                strncpy(p.geste, geste, sizeof(p.geste) - 1);
-                p.geste[sizeof(p.geste) - 1] = 0;
-                for (int k = 0; k < nb && k < kMaxElements; ++k) {
-                        LireMot(p.elements[k], kMaxElement);
-                        ++p.nbElements;
-                }
-                for (int k = kMaxElements; k < nb; ++k) {
-                        char perdu[kMaxElement];
-                        LireMot(perdu, sizeof(perdu));
-                }
-                ++gNbPas;
-        }
-
-        Trier();
-
-        int dernierTour = 0;
-        for (int i = 0; i < gNbPas; ++i)
-                if (gPas[i].tour > dernierTour)
-                        dernierTour = gPas[i].tour;
-
-        long long ignores = 0;
-        long long jamais = 0;
-        long long arret = 0;
-        bool arrete = false;
-
-        for (int i = 0; i < gNbPas; ++i) {
-                const Pas &p = gPas[i];
-
-                if (p.tour <= 0 || p.tour > dernierTour) {
-                        ++ignores;
-                        continue;
-                }
-                if (i > 0 && gPas[i - 1].tour == p.tour && gPas[i - 1].capture && p.capture) {
-                        ++ignores;
-                        continue;
-                }
-                if (!p.garde) {
-                        ++ignores;
-                        continue;
-                }
-
-                if (p.capture) {
-                        const int tourCapture = p.tour + 1;
-                        if (tourCapture > dernierTour) {
-                                ++jamais;
-                                if (!arrete) {
-                                        arret = tourCapture;
-                                        arrete = true;
-                                }
-                                continue;
-                        }
-                        char texte[kMaxNom];
-                        strcpy(texte, "SHOT");
-                        Ajouter(tourCapture, 0, texte);
-                        continue;
-                }
-
-                char texte[kMaxNom + kMaxElement * kMaxElements];
-                strcpy(texte, p.geste);
-                for (int k = 0; k < p.nbElements; ++k) {
-                        strcat(texte, " ");
-                        strncat(texte, p.elements[k], kMaxElement - 1);
-                }
-                Ajouter(p.tour, 1, texte);
-        }
-
-        TrierSorties();
-
-        for (int i = 0; i < gNbSorties; ++i) {
-                Ecrire("TOUR ");
-                EcrireEntier(gSorties[i].tour);
-                Ecrire(" ");
-                Ecrire(gSorties[i].texte);
-                Ecrire("\n");
-        }
-
-        Ecrire("ARRET ");
-        EcrireEntier(arret);
-        Ecrire("\nJAMAIS ");
-        EcrireEntier(jamais);
-        Ecrire("\nIGNORES ");
-        EcrireEntier(ignores);
-        Ecrire("\n");
 }
 
 } // namespace
 
 int main() {
-        Traiter();
+        std::vector<NkAction> actions;
+        std::vector<NkDepot> depots;
+        std::vector<NkClic> clics;
+        std::vector<long> captures;
+        long sortie = 0;
+        long ignores = 0;
+
+        char tampon[1 << 16];
+        while (std::fgets(tampon, sizeof(tampon), stdin) != nullptr) {
+                std::string ligne = tampon;
+                while (!ligne.empty() && (ligne.back() == '\n' || ligne.back() == '\r'))
+                        ligne.pop_back();
+                const size_t egal = ligne.find('=');
+                if (egal == std::string::npos)
+                        continue;
+                const std::string nom = ligne.substr(0, egal);
+                const std::string valeur = ligne.substr(egal + 1);
+                std::vector<std::string> morceaux;
+
+                if (nom == "NK_AGENT_EXIT") {
+                        long n = 0;
+                        if (!Entier(valeur, n))
+                                ++ignores;
+                        else
+                                sortie = n;
+                        continue;
+                }
+
+                if (nom == "NK_AGENT_PAN" || nom == "NK_AGENT_MOVE" || nom == "NK_AGENT_ZOOM" ||
+                    nom == "NK_AGENT_GRID") {
+                        const size_t minimum =
+                                nom == "NK_AGENT_ZOOM" ? 4 : (nom == "NK_AGENT_GRID" ? 2 : 3);
+                        Couper(valeur, ':', morceaux);
+                        bool valide = morceaux.size() >= minimum;
+                        long nombres[4] = {0, 0, 0, 0};
+                        // Le dernier champ de GRID (affichee ou cachee) se
+                        // recopie tel quel ; tous les autres sont des nombres.
+                        const size_t aLire = nom == "NK_AGENT_GRID" ? 1 : minimum;
+                        for (size_t i = 0; valide && i < aLire; ++i)
+                                valide = Entier(morceaux[i], nombres[i]);
+                        if (!valide) {
+                                ++ignores;
+                                continue;
+                        }
+                        NkAction a;
+                        a.genre = nom == "NK_AGENT_PAN"    ? NkAction::Pan
+                                  : nom == "NK_AGENT_MOVE" ? NkAction::Move
+                                  : nom == "NK_AGENT_ZOOM" ? NkAction::Zoom
+                                                           : NkAction::Grille;
+                        a.tour = nombres[0];
+                        a.nchamps = static_cast<int>(minimum) - 1;
+                        a.champ[0] = nombres[1];
+                        a.champ[1] = nombres[2];
+                        a.champ[2] = nombres[3];
+                        if (nom == "NK_AGENT_GRID")
+                                a.texte = morceaux[1];
+                        actions.push_back(a);
+                        continue;
+                }
+
+                if (nom == "NK_AGENT_PACK") {
+                        long n = 0;
+                        if (!Entier(valeur, n)) {
+                                ++ignores;
+                                continue;
+                        }
+                        NkAction a;
+                        a.genre = NkAction::Pack;
+                        a.tour = n;
+                        actions.push_back(a);
+                        continue;
+                }
+
+                if (nom == "NK_AGENT_SHOT") {
+                        Couper(valeur, ',', morceaux);
+                        int gardes = 0;
+                        for (size_t i = 0; i < morceaux.size(); ++i) {
+                                long n = 0;
+                                if (!Entier(morceaux[i], n) || gardes == kMaxElements) {
+                                        ++ignores;
+                                        continue;
+                                }
+                                captures.push_back(n);
+                                ++gardes;
+                        }
+                        continue;
+                }
+
+                if (nom == "NK_AGENT_CLICK" || nom == "NK_AGENT_DROP") {
+                        Couper(valeur, ';', morceaux);
+                        int gardes = 0;
+                        for (size_t i = 0; i < morceaux.size(); ++i) {
+                                const std::string &element = morceaux[i];
+                                long tour = 0, px = 0, py = 0;
+                                bool valide = false;
+                                std::string chemin;
+                                if (nom == "NK_AGENT_CLICK") {
+                                        std::vector<std::string> champs;
+                                        Couper(element, ':', champs);
+                                        valide = champs.size() >= 3 && Entier(champs[0], tour) &&
+                                                 Entier(champs[1], px) && Entier(champs[2], py);
+                                } else {
+                                        // Le chemin est tout ce qui suit le troisieme deux-points.
+                                        const size_t p1 = element.find(':');
+                                        const size_t p2 = p1 == std::string::npos ? p1 : element.find(':', p1 + 1);
+                                        const size_t p3 = p2 == std::string::npos ? p2 : element.find(':', p2 + 1);
+                                        if (p3 != std::string::npos && Entier(element.substr(0, p1), tour) &&
+                                            Entier(element.substr(p1 + 1, p2 - p1 - 1), px) &&
+                                            Entier(element.substr(p2 + 1, p3 - p2 - 1), py)) {
+                                                chemin = element.substr(p3 + 1);
+                                                valide = true;
+                                        }
+                                }
+                                if (!valide || gardes == kMaxElements) {
+                                        ++ignores;
+                                        continue;
+                                }
+                                if (nom == "NK_AGENT_CLICK")
+                                        clics.push_back(NkClic{tour, px, py});
+                                else
+                                        depots.push_back(NkDepot{tour, px, py, chemin});
+                                ++gardes;
+                        }
+                        continue;
+                }
+        }
+
+        // Dernier tour utile quand rien n'arrete la boucle : au-dela, plus rien
+        // ne peut arriver.
+        long dernierTour = 0;
+        for (size_t i = 0; i < actions.size(); ++i)
+                if (actions[i].tour > dernierTour)
+                        dernierTour = actions[i].tour;
+        for (size_t i = 0; i < depots.size(); ++i)
+                if (depots[i].tour > dernierTour)
+                        dernierTour = depots[i].tour;
+        for (size_t i = 0; i < clics.size(); ++i)
+                if (clics[i].tour > dernierTour)
+                        dernierTour = clics[i].tour;
+        for (size_t i = 0; i < captures.size(); ++i)
+                if (captures[i] > dernierTour)
+                        dernierTour = captures[i];
+        if (dernierTour < 0)
+                dernierTour = 0;
+
+        std::vector<char> actionFaite(actions.size(), 0);
+        std::vector<char> depotFait(depots.size(), 0);
+        std::vector<char> clicFait(clics.size(), 0);
+        std::vector<char> captureFaite(captures.size(), 0);
+
+        long tour = 0;
+        bool arret = false;
+        for (;;) {
+                if (tour > 0) {
+                        // Ordre impose dans le tour : PAN, ZOOM, les depots, les
+                        // clics, MOVE, le rangement, la grille.
+                        for (size_t i = 0; i < actions.size(); ++i)
+                                if (!actionFaite[i] && actions[i].genre == NkAction::Pan &&
+                                    actions[i].tour == tour) {
+                                        actionFaite[i] = 1;
+                                        std::printf("TOUR %ld PAN %ld %ld\n", tour, actions[i].champ[0],
+                                                    actions[i].champ[1]);
+                                }
+                        for (size_t i = 0; i < actions.size(); ++i)
+                                if (!actionFaite[i] && actions[i].genre == NkAction::Zoom &&
+                                    actions[i].tour == tour) {
+                                        actionFaite[i] = 1;
+                                        std::printf("TOUR %ld ZOOM %ld %ld %ld\n", tour, actions[i].champ[0],
+                                                    actions[i].champ[1], actions[i].champ[2]);
+                                }
+                        for (size_t i = 0; i < depots.size(); ++i)
+                                if (!depotFait[i] && depots[i].tour == tour) {
+                                        depotFait[i] = 1;
+                                        std::printf("TOUR %ld DEPOT %s %ld %ld\n", tour, depots[i].chemin.c_str(),
+                                                    depots[i].px, depots[i].py);
+                                }
+                        for (size_t i = 0; i < clics.size(); ++i)
+                                if (!clicFait[i] && clics[i].tour == tour) {
+                                        clicFait[i] = 1;
+                                        std::printf("TOUR %ld CLIC %ld %ld\n", tour, clics[i].px, clics[i].py);
+                                }
+                        for (size_t i = 0; i < actions.size(); ++i)
+                                if (!actionFaite[i] && actions[i].genre == NkAction::Move &&
+                                    actions[i].tour == tour) {
+                                        actionFaite[i] = 1;
+                                        std::printf("TOUR %ld MOVE %ld %ld\n", tour, actions[i].champ[0],
+                                                    actions[i].champ[1]);
+                                }
+                        for (size_t i = 0; i < actions.size(); ++i)
+                                if (!actionFaite[i] && actions[i].genre == NkAction::Pack &&
+                                    actions[i].tour == tour) {
+                                        actionFaite[i] = 1;
+                                        std::printf("TOUR %ld RANGE\n", tour);
+                                }
+                        for (size_t i = 0; i < actions.size(); ++i)
+                                if (!actionFaite[i] && actions[i].genre == NkAction::Grille &&
+                                    actions[i].tour == tour) {
+                                        actionFaite[i] = 1;
+                                        std::printf("TOUR %ld GRILLE %s\n", tour, actions[i].texte.c_str());
+                                }
+                }
+
+                // Le compteur passe a tour + 1 : ce sont ces captures qui ont lieu.
+                const long suivant = tour + 1;
+                for (size_t i = 0; i < captures.size(); ++i)
+                        if (!captureFaite[i] && captures[i] == suivant) {
+                                captureFaite[i] = 1;
+                                std::printf("TOUR %ld CAPTURE\n", tour);
+                        }
+
+                if (sortie > 0 && suivant >= sortie) {
+                        arret = true;
+                        break;
+                }
+                if (sortie <= 0 && suivant > dernierTour)
+                        break;
+                ++tour;
+        }
+
+        if (arret)
+                std::printf("ARRET %ld\n", tour);
+        else
+                std::printf("SANS_ARRET\n");
+
+        long jamais = 0;
+        for (size_t i = 0; i < actionFaite.size(); ++i)
+                if (!actionFaite[i])
+                        ++jamais;
+        for (size_t i = 0; i < depotFait.size(); ++i)
+                if (!depotFait[i])
+                        ++jamais;
+        for (size_t i = 0; i < clicFait.size(); ++i)
+                if (!clicFait[i])
+                        ++jamais;
+        for (size_t i = 0; i < captureFaite.size(); ++i)
+                if (!captureFaite[i])
+                        ++jamais;
+
+        std::printf("JAMAIS %ld\n", jamais);
+        std::printf("IGNORES %ld\n", ignores);
         return 0;
 }

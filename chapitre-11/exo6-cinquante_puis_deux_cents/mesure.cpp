@@ -1,192 +1,94 @@
+// Mesure de l'enregistrement et de la relecture d'une planche NkRef, avec le
+// vrai format de l'outil (NkRefFile) et son chronometre (NkChrono).
+//
+// Construction, depuis la racine du depot du moteur :
+//   g++ -std=c++17 -O0 -g -IApplications/NkRef/src \
+//       -IKernel/Foundation/NKMath/src -IKernel/Foundation/NKContainers/src \
+//       -IKernel/Foundation/NKCore/src -IKernel/Foundation/NKMemory/src \
+//       -IKernel/Foundation/NKPlatform/src -IKernel/System/NKTime/src \
+//       mesure.cpp <objets du moteur> -o mesure
+// Lancement : ./mesure 50
+
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <ctime>
 
 #include "NkRef/NkRefFile.h"
-
-using namespace nkentseu;
-using namespace nkref;
+#include "NKTime/NkChrono.h" // apres NkRefFile.h : NKMath exige <ctime> deja inclus
 
 namespace {
 
-// 32 octets d'en-tete (signature, version, vue, theme, grille, nbItems), puis
-// 36 octets par image et les octets de l'image. Rien d'autre.
-const int kOctetsParImage = 1000;
+const int kLargeur = 100;
+const int kHauteur = 80;
+const int kOctetsSource = 1000;
+const int kRepetitions = 20;
 
-uint32 Crc32(const uint8 *p, usize n) {
-        static uint32 table[256];
-        static bool prete = false;
-        if (!prete) {
-                for (uint32 i = 0; i < 256; ++i) {
-                        uint32 c = i;
-                        for (int k = 0; k < 8; ++k)
-                                c = (c & 1u) ? (0xedb88320u ^ (c >> 1)) : (c >> 1);
-                        table[i] = c;
-                }
-                prete = true;
+struct NkPlanche {
+        nkref::NkRefBoard board;
+        nkref::NkRefView view;
+        nkentseu::NkVector<nkref::NkRefFileImage> images;
+        nkentseu::NkVector<nkentseu::NkVector<nkentseu::uint8>> sources;
+};
+
+void Construire(NkPlanche &planche, int nombre) {
+        planche.sources.Resize(static_cast<nkentseu::usize>(nombre));
+        planche.images.Resize(static_cast<nkentseu::usize>(nombre));
+        for (int i = 0; i < nombre; ++i) {
+                nkentseu::NkVector<nkentseu::uint8> &octets = planche.sources[static_cast<nkentseu::usize>(i)];
+                octets.Resize(static_cast<nkentseu::usize>(kOctetsSource));
+                for (int k = 0; k < kOctetsSource; ++k)
+                        octets[static_cast<nkentseu::usize>(k)] =
+                                static_cast<nkentseu::uint8>((i * 31 + k * 7) & 0xFF);
+
+                // Les images sont posees en grille, sans aucun trait de crayon :
+                // l'espacement laisse la place a la taille affichee.
+                const nkentseu::math::NkVec2f position{
+                        static_cast<nkentseu::float32>((i % 10) * (kLargeur + 20) - 600),
+                        static_cast<nkentseu::float32>((i / 10) * (kHauteur + 20) - 400)};
+                planche.board.AddItem(position, kLargeur, kHauteur, nkentseu::NkString());
+
+                planche.images[static_cast<nkentseu::usize>(i)].data = octets.Data();
+                planche.images[static_cast<nkentseu::usize>(i)].size = octets.Size();
         }
-        uint32 c = 0xffffffffu;
-        for (usize i = 0; i < n; ++i)
-                c = table[(c ^ p[i]) & 0xffu] ^ (c >> 8);
-        return c ^ 0xffffffffu;
-}
-
-void PutU32BE(NkVector<uint8> &out, uint32 v) {
-        out.PushBack((uint8)(v >> 24));
-        out.PushBack((uint8)(v >> 16));
-        out.PushBack((uint8)(v >> 8));
-        out.PushBack((uint8)v);
-}
-
-void PutChunk(NkVector<uint8> &out, const char *type, const uint8 *data, usize n) {
-        PutU32BE(out, (uint32)n);
-        const usize debut = out.Size();
-        for (int i = 0; i < 4; ++i)
-                out.PushBack((uint8)type[i]);
-        for (usize i = 0; i < n; ++i)
-                out.PushBack(data[i]);
-        PutU32BE(out, Crc32(out.Data() + debut, n + 4));
-}
-
-// Un PNG valide de 4 x 4 pixels, complete a exactement 1000 octets par un bloc
-// de texte libre : c'est la taille des images que le protocole de mesure fixe.
-void FaireImage(NkVector<uint8> &sortie, uint8 teinte) {
-        sortie.Clear();
-        static const uint8 signature[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
-        for (int i = 0; i < 8; ++i)
-                sortie.PushBack(signature[i]);
-
-        uint8 ihdr[13];
-        ihdr[0] = 0;
-        ihdr[1] = 0;
-        ihdr[2] = 0;
-        ihdr[3] = 4;
-        ihdr[4] = 0;
-        ihdr[5] = 0;
-        ihdr[6] = 0;
-        ihdr[7] = 4;
-        ihdr[8] = 8;
-        ihdr[9] = 6;
-        ihdr[10] = 0;
-        ihdr[11] = 0;
-        ihdr[12] = 0;
-        PutChunk(sortie, "IHDR", ihdr, 13);
-
-        NkVector<uint8> brut;
-        for (int y = 0; y < 4; ++y) {
-                brut.PushBack(0);
-                for (int x = 0; x < 4; ++x) {
-                        brut.PushBack((uint8)(teinte + (uint8)(x * 20)));
-                        brut.PushBack((uint8)(teinte + (uint8)(y * 20)));
-                        brut.PushBack((uint8)(teinte + 60));
-                        brut.PushBack(255);
-                }
-        }
-
-        NkVector<uint8> z;
-        z.PushBack(0x78);
-        z.PushBack(0x01);
-        const usize n = brut.Size();
-        z.PushBack(0x01);
-        z.PushBack((uint8)(n & 0xffu));
-        z.PushBack((uint8)((n >> 8) & 0xffu));
-        z.PushBack((uint8)(~n & 0xffu));
-        z.PushBack((uint8)((~n >> 8) & 0xffu));
-        for (usize i = 0; i < n; ++i)
-                z.PushBack(brut[i]);
-
-        uint32 a = 1;
-        uint32 b = 0;
-        for (usize i = 0; i < n; ++i) {
-                a = (a + brut[i]) % 65521u;
-                b = (b + a) % 65521u;
-        }
-        PutU32BE(z, (b << 16) | a);
-        PutChunk(sortie, "IDAT", z.Data(), z.Size());
-
-        const usize fixe = sortie.Size() + 12 + 12 + 8;
-        const usize reste = (usize)kOctetsParImage > fixe ? (usize)kOctetsParImage - fixe : 0;
-        NkVector<uint8> texte;
-        const char *mot = "Comment";
-        for (int i = 0; mot[i] != 0; ++i)
-                texte.PushBack((uint8)mot[i]);
-        texte.PushBack(0);
-        for (usize i = 0; i < reste; ++i)
-                texte.PushBack((uint8)('a' + (uint8)((i + teinte) % 26u)));
-        PutChunk(sortie, "tEXt", texte.Data(), texte.Size());
-        PutChunk(sortie, "IEND", nullptr, 0);
-}
-
-const uint32 kLargeurs[] = {4, 4, 4};
-const uint32 kHauteurs[] = {4, 4, 4};
-
-NkVector<uint8> gImages[3];
-
-void Construire(int n, NkRefBoard &planche, NkVector<NkRefFileImage> &images) {
-        for (int i = 0; i < n; ++i) {
-                NkRefItem item;
-                item.id = (uint32)(i + 1);
-                item.pos.x = (float32)(i % 10) * 40.0f;
-                item.pos.y = (float32)(i / 10) * 40.0f;
-                item.scale = 1.0f;
-                item.rotationDeg = 0.0f;
-                item.opacity = 1.0f;
-                item.mirrorX = false;
-                item.mirrorY = false;
-                item.texW = kLargeurs[i % 3];
-                item.texH = kHauteurs[i % 3];
-                planche.items.PushBack(item);
-
-                NkRefFileImage img;
-                img.data = gImages[i % 3].Data();
-                img.size = gImages[i % 3].Size();
-                images.PushBack(img);
-        }
-}
-
-unsigned long Mesurer(int n) {
-        NkRefBoard planche;
-        NkVector<NkRefFileImage> images;
-        Construire(n, planche, images);
-
-        NkRefView vue;
-        vue.center.x = 0.0f;
-        vue.center.y = 0.0f;
-        vue.zoom = 1.0f;
-
-        NkVector<uint8> fichier;
-        NkRefSerialize(fichier, planche, images.Data(), vue, false, true);
-
-        NkVector<uint8> temoin;
-        NkRefSerialize(temoin, planche, images.Data(), vue, false, true);
-        if (fichier.Size() != temoin.Size()) {
-                std::fprintf(stderr, "mesure : deux passages ne donnent pas la meme taille\n");
-                std::exit(2);
-        }
-        bool identiques = true;
-        for (usize i = 0; i < fichier.Size(); ++i)
-                if (fichier[i] != temoin[i])
-                        identiques = false;
-        if (!identiques) {
-                std::fprintf(stderr, "mesure : deux passages ne donnent pas les memes octets\n");
-                std::exit(3);
-        }
-        return (unsigned long)fichier.Size();
 }
 
 } // namespace
 
-int main() {
-        for (int i = 0; i < 3; ++i) {
-                FaireImage(gImages[i], (uint8)(i * 70));
-                if (gImages[i].Size() != (usize)kOctetsParImage) {
-                        std::fprintf(stderr, "mesure : image %d de %lu octets au lieu de %d\n", i,
-                                     (unsigned long)gImages[i].Size(), kOctetsParImage);
-                        return 1;
-                }
+int main(int argc, char **argv) {
+        const int nombre = argc > 1 ? std::atoi(argv[1]) : 50;
+
+        NkPlanche planche;
+        Construire(planche, nombre);
+
+        nkentseu::NkVector<nkentseu::uint8> ecrit;
+        nkentseu::NkChrono chrono;
+        double totalEcriture = 0.0, totalLecture = 0.0;
+
+        for (int i = 0; i < kRepetitions; ++i) {
+                nkentseu::NkElapsedTime debutEcriture = chrono.Reset();
+                nkref::NkRefSerialize(ecrit, planche.board, planche.images.Data(), planche.view, true, true);
+                totalEcriture += chrono.Elapsed().ToMilliseconds();
+                (void)debutEcriture;
         }
 
-        std::printf("Cinquante : %lu\n", Mesurer(50));
-        std::printf("Deux cents : %lu\n", Mesurer(200));
+        nkentseu::NkVector<nkref::NkRefLoadedItem> relus;
+        nkentseu::NkVector<nkref::NkRefStroke> traits;
+        bool theme = true, grille = true;
+        bool lisible = true;
+
+        for (int i = 0; i < kRepetitions; ++i) {
+                nkref::NkRefView vue;
+                nkentseu::NkChrono lecture;
+                nkref::NkRefDeserialize(ecrit.Data(), ecrit.Size(), relus, traits, vue, theme, grille);
+                totalLecture += lecture.Elapsed().ToMilliseconds();
+                if (relus.Size() != static_cast<nkentseu::usize>(nombre))
+                        lisible = false;
+        }
+
+        std::printf("images : %d, octets : %u, ecrire : %.3f ms, relire : %.3f ms\n", nombre,
+                    static_cast<unsigned>(ecrit.Size()), totalEcriture / kRepetitions,
+                    totalLecture / kRepetitions);
+        if (!lisible)
+                std::printf("la relecture n'a pas rendu les %d images\n", nombre);
         return 0;
 }

@@ -1,5 +1,28 @@
 commit : 83b50fa
-Les miroirs : NkSprite::SetFlipX, SetFlipY, GetFlipX, GetFlipY et les champs mFlipX, mFlipY. SetFlipX est appele une seule fois dans tout le depot, Applications/NkRef/src/NkRef/main.cpp:1823, juste avant le dessin du sprite. Aucun fichier du Kernel ne lit ces champs pour decider de quelque chose : la seule lecture de GetFlipX, qui est dans le chemin de dessin, date de bc27f36c le 2026-09-10, et avant ce commit il n'y avait qu'une ligne commentee a la place (7461c22, la ligne 308 de NkBatchRenderer2D.cpp). Le drapeau part donc a la poubelle a chaque image.
-Membre 1 : NkSprite::mFlipX
-Membre 2 : NkSprite::mFlipY
+Les miroirs : git -C Nkentseu grep -n "GetFlipX" -- Kernel
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Batch/NkBatchRenderer2D.cpp:623:            if (sprite.GetFlipX()) {
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Resources/NkSprite.cpp:51:         bool NkSprite::GetFlipX() const {
+Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Resources/NkSprite.h:82:             bool GetFlipX() const;
+Le seul fichier qui LIT la valeur est NkBatchRenderer2D.cpp:623, dans le chemin de dessin. Cote application, un seul appel pose le drapeau : git -C Nkentseu grep -n "SetFlipX" -- Applications/NkRef
+Applications/NkRef/src/NkRef/main.cpp:1823:            sp.SetFlipX(it.mirrorX);
+
+Membre 1 : NkRefItem::sourcePath
+Ecrit dans : git -C Nkentseu grep -n "sourcePath" -- Applications/NkRef
+Applications/NkRef/src/NkRef/NkRefBoard.h:44:            NkString sourcePath; ///< vide = collée du presse-papiers (Étape 2 : octets embarqués)
+Applications/NkRef/src/NkRef/NkRefBoard.h:65:            uint32 AddItem(const NkVec2f &worldPos, uint32 texW, uint32 texH, const NkString &sourcePath) {
+Applications/NkRef/src/NkRef/NkRefBoard.h:71:                it.sourcePath = sourcePath;
+Lu par : personne. La meme recherche sans filtre de dossier (git -C Nkentseu grep -n "sourcePath") ne rend, hors OpenXR qui est un en-tete tiers, que ces trois lignes : deux ecritures et la declaration.
+
+Membre 2 : NkText::mOutlineThickness
+Ecrit dans : git -C Nkentseu grep -n "mOutlineThickness" -- Kernel/Runtime/NKCanvas/src/NKCanvas/Renderer/Resources
+NkSprite.h:154:                  mOutlineThickness = t;
+NkSprite.h:166:                  return mOutlineThickness;
+NkSprite.h:203:              float32 mOutlineThickness = 0.f;
+Lu par : personne. La valeur ne sort que par GetOutlineThickness(), et git -C Nkentseu grep -n "GetOutlineThickness()" -- Kernel Applications ne rend que les deux declarations, NkSprite.h:165 et NkShape.h:66 (celle de NkShape, qui est une autre classe) : aucun appelant.
+
 Membre 3 : NkCanvasApp::mHasFocus
+Ecrit dans : git -C Nkentseu grep -n "mHasFocus" -- Kernel
+Kernel/Runtime/NKCanvas/src/NKCanvas/App/NkCanvasApp.cpp:179:                mHasFocus = false;
+Kernel/Runtime/NKCanvas/src/NKCanvas/App/NkCanvasApp.cpp:187:                mHasFocus = true;
+Kernel/Runtime/NKCanvas/src/NKCanvas/App/NkCanvasApp.h:413:            bool mHasFocus = true;
+Lu par : personne. Il n'existe aucun accesseur : git -C Nkentseu grep -n "HasFocus()" -- Kernel Applications ne rend rien.

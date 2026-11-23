@@ -1,219 +1,179 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace {
 
-const int kMaxCommits = 50000;
-const int kMaxMots = 200000;
-const int kMaxMot = 40;
-const int kMaxId = 24;
-const int kTampon = 1 << 20;
+std::vector<char> g_tampon;
+std::vector<char *> g_jetons;
+size_t g_courant = 0;
 
-char gTampon[kTampon];
-int gAt = 0;
-int gLen = 0;
+void ChargerEntree() {
+        char bloc[1 << 16];
+        size_t lu = 0;
+        while ((lu = std::fread(bloc, 1, sizeof(bloc), stdin)) > 0)
+                g_tampon.insert(g_tampon.end(), bloc, bloc + lu);
+        g_tampon.push_back('\0');
 
-void Remplir() {
-        if (gAt < gLen)
-                return;
-        gLen = (int)fread(gTampon, 1, kTampon, stdin);
-        gAt = 0;
-}
-
-char LireChar() {
-        Remplir();
-        if (gAt >= gLen)
-                return 0;
-        return gTampon[gAt++];
-}
-
-void LireMot(char *dst, int cap) {
-        int n = 0;
-        char c = LireChar();
-        while (c != 0 && c != ' ' && c != '\n' && c != '\r' && c != '\t') {
-                if (n < cap - 1)
-                        dst[n++] = c;
-                c = LireChar();
+        char *p = g_tampon.data();
+        char *fin = p + g_tampon.size();
+        while (p < fin) {
+                while (p < fin && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n'))
+                        *p++ = '\0';
+                if (p >= fin || *p == '\0')
+                        break;
+                g_jetons.push_back(p);
+                while (p < fin && *p != '\0' && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n')
+                        ++p;
         }
-        dst[n] = 0;
 }
 
-long long LireEntier() {
-        char mot[32];
-        LireMot(mot, sizeof(mot));
-        return strtoll(mot, nullptr, 10);
+const char *Jeton() {
+        if (g_courant >= g_jetons.size())
+                return "";
+        return g_jetons[g_courant++];
 }
 
-int LireInt() {
-        return (int)LireEntier();
-}
+long JetonNombre() { return std::strtol(Jeton(), nullptr, 10); }
 
-void Ecrire(const char *txt) {
-        fputs(txt, stdout);
-}
+bool Egal(const char *a, const char *b) { return std::strcmp(a, b) == 0; }
 
-void EcrireEntier(long long v) {
-        char txt[24];
-        int n = 0;
-        if (v == 0) {
-                txt[n++] = '0';
-        } else {
-                char tmp[24];
-                int m = 0;
-                while (v > 0) {
-                        tmp[m++] = (char)('0' + (int)(v % 10));
-                        v /= 10;
+class NkTable {
+      public:
+        NkTable() : m_cases(1u << 20, -1) {}
+
+        int Rang(const char *nom) {
+                size_t i = Empreinte(nom) & (m_cases.size() - 1);
+                while (m_cases[i] >= 0) {
+                        if (Egal(m_noms[static_cast<size_t>(m_cases[i])], nom))
+                                return m_cases[i];
+                        i = (i + 1) & (m_cases.size() - 1);
                 }
-                while (m > 0)
-                        txt[n++] = tmp[--m];
+                m_noms.push_back(nom);
+                const int rang = static_cast<int>(m_noms.size()) - 1;
+                m_cases[i] = rang;
+                return rang;
         }
-        txt[n] = 0;
-        Ecrire(txt);
-}
 
-struct Commit {
-        char id[kMaxId];
-        char idParent[kMaxId];
-        int parent;
-        int profondeur;
-        int premierMot;
-        int nbMots;
+        int Chercher(const char *nom) const {
+                size_t i = Empreinte(nom) & (m_cases.size() - 1);
+                while (m_cases[i] >= 0) {
+                        if (Egal(m_noms[static_cast<size_t>(m_cases[i])], nom))
+                                return m_cases[i];
+                        i = (i + 1) & (m_cases.size() - 1);
+                }
+                return -1;
+        }
+
+      private:
+        static size_t Empreinte(const char *cle) {
+                size_t h = 1469598103934665603ull;
+                while (*cle != '\0') {
+                        h ^= static_cast<unsigned char>(*cle++);
+                        h *= 1099511628211ull;
+                }
+                return h;
+        }
+
+        std::vector<int> m_cases;
+        std::vector<const char *> m_noms;
 };
 
-struct Mot {
-        char texte[kMaxMot];
+// Pour une fonction : la suite de ses AJOUTE/RETIRE, dans l'ordre des commits.
+struct NkChangement {
         int commit;
+        bool present;
 };
 
-Commit gCommits[kMaxCommits];
-Mot gMots[kMaxMots];
-int gNbCommits = 0;
-int gNbMots = 0;
+class NkFonction {
+      public:
+        std::vector<NkChangement> changements;
 
-int Trouver(const char *id) {
-        for (int i = 0; i < gNbCommits; ++i)
-                if (strcmp(gCommits[i].id, id) == 0)
-                        return i;
-        return -1;
-}
-
-void CalculerProfondeurs() {
-        for (int i = 0; i < gNbCommits; ++i) {
-                int d = 0;
-                int p = gCommits[i].parent;
-                int garde = 0;
-                while (p >= 0 && garde <= gNbCommits) {
-                        ++d;
-                        p = gCommits[p].parent;
-                        ++garde;
-                }
-                gCommits[i].profondeur = d;
-        }
-}
-
-bool Contient(int commit, const char *mot) {
-        const Commit &c = gCommits[commit];
-        for (int k = 0; k < c.nbMots; ++k)
-                if (strcmp(gMots[c.premierMot + k].texte, mot) == 0)
-                        return true;
-        return false;
-}
-
-bool Present(int commit, const char *mot) {
-        int p = commit;
-        int garde = 0;
-        while (p >= 0 && garde <= gNbCommits) {
-                if (Contient(p, mot))
-                        return true;
-                p = gCommits[p].parent;
-                ++garde;
-        }
-        return false;
-}
-
-int DernierPorteur(const char *mot) {
-        int meilleur = -1;
-        for (int i = 0; i < gNbCommits; ++i) {
-                if (!Contient(i, mot))
-                        continue;
-                if (meilleur < 0 || gCommits[i].profondeur > gCommits[meilleur].profondeur)
-                        meilleur = i;
-        }
-        return meilleur;
-}
-
-void Traiter() {
-        gNbCommits = LireInt();
-        if (gNbCommits < 0)
-                gNbCommits = 0;
-        if (gNbCommits > kMaxCommits)
-                gNbCommits = kMaxCommits;
-
-        for (int i = 0; i < gNbCommits; ++i) {
-                Commit &c = gCommits[i];
-                LireMot(c.id, sizeof(c.id));
-                LireMot(c.idParent, sizeof(c.idParent));
-                c.parent = -1;
-                c.premierMot = gNbMots;
-                c.nbMots = LireInt();
-                if (c.nbMots < 0)
-                        c.nbMots = 0;
-                for (int k = 0; k < c.nbMots; ++k) {
-                        if (gNbMots >= kMaxMots)
-                                break;
-                        LireMot(gMots[gNbMots].texte, sizeof(gMots[gNbMots].texte));
-                        gMots[gNbMots].commit = i;
-                        ++gNbMots;
-                }
-        }
-
-        for (int i = 0; i < gNbCommits; ++i) {
-                const char *pere = gCommits[i].idParent;
-                if (pere[0] == '-' && pere[1] == 0)
-                        continue;
-                gCommits[i].parent = Trouver(pere);
-        }
-
-        CalculerProfondeurs();
-
-        const int m = LireInt();
-        long long mensonges = 0;
-        for (int k = 0; k < m; ++k) {
-                char mot[kMaxMot];
-                char id[kMaxId];
-                LireMot(mot, sizeof(mot));
-                LireMot(id, sizeof(id));
-                const int c = Trouver(id);
-
-                bool vrai = false;
-                if (c >= 0)
-                        vrai = Present(c, mot);
-
-                Ecrire("ANNONCE ");
-                EcrireEntier(k + 1);
-                if (vrai) {
-                        Ecrire(" VRAI\n");
-                } else {
-                        ++mensonges;
-                        Ecrire(" MENT ");
-                        const int h = DernierPorteur(mot);
-                        if (h < 0)
-                                Ecrire("AUCUN");
+        bool Presente(int commit) const {
+                size_t bas = 0, haut = changements.size();
+                while (bas < haut) { // dernier changement au plus tard au commit
+                        const size_t milieu = (bas + haut) / 2;
+                        if (changements[milieu].commit <= commit)
+                                bas = milieu + 1;
                         else
-                                Ecrire(gCommits[h].id);
-                        Ecrire("\n");
+                                haut = milieu;
                 }
+                if (bas == 0)
+                        return false;
+                return changements[bas - 1].present;
         }
-
-        Ecrire("MENSONGES ");
-        EcrireEntier(mensonges);
-        Ecrire("\n");
-}
+};
 
 } // namespace
 
 int main() {
-        Traiter();
+        ChargerEntree();
+
+        std::vector<const char *> hashes;
+        NkTable nomsDeCommits;
+        NkTable nomsDeFonctions;
+        std::vector<NkFonction> fonctionsParRang;
+
+        const long nbCommits = JetonNombre();
+        for (long c = 0; c < nbCommits; ++c) {
+                hashes.push_back(Jeton());
+                nomsDeCommits.Rang(hashes.back());
+                const bool ajout = Egal(Jeton(), "AJOUTE");
+                const long k = JetonNombre();
+                for (long j = 0; j < k; ++j) {
+                        const int rang = nomsDeFonctions.Rang(Jeton());
+                        if (static_cast<size_t>(rang) >= fonctionsParRang.size())
+                                fonctionsParRang.resize(static_cast<size_t>(rang) + 1);
+                        fonctionsParRang[static_cast<size_t>(rang)].changements.push_back(
+                                NkChangement{static_cast<int>(c), ajout});
+                }
+        }
+
+        struct Annonce {
+                int commit;
+                bool aVenir;
+                int fonction;
+        };
+        std::vector<Annonce> annonces;
+
+        const long nbAnnonces = JetonNombre();
+        for (long i = 0; i < nbAnnonces; ++i) {
+                const int commit = nomsDeCommits.Chercher(Jeton());
+                const bool aVenir = Egal(Jeton(), "A_VENIR");
+                const int fonction = nomsDeFonctions.Rang(Jeton());
+                if (static_cast<size_t>(fonction) >= fonctionsParRang.size())
+                        fonctionsParRang.resize(static_cast<size_t>(fonction) + 1);
+                annonces.push_back(Annonce{commit, aVenir, fonction});
+        }
+
+        const int dernier = static_cast<int>(nbCommits) - 1;
+        long mensonges = 0;
+
+        for (size_t i = 0; i < annonces.size(); ++i) {
+                const Annonce &a = annonces[i];
+                const int commitEcriture = a.commit;
+
+                const NkFonction &f = fonctionsParRang[static_cast<size_t>(a.fonction)];
+                auto vraie = [&](int commit) {
+                        const bool presente = f.Presente(commit);
+                        return a.aVenir ? !presente : presente;
+                };
+
+                if (vraie(dernier)) {
+                        std::printf("ANNONCE %u VRAI\n", static_cast<unsigned>(i + 1));
+                        continue;
+                }
+
+                int debut = dernier;
+                while (debut > commitEcriture && !vraie(debut - 1))
+                        --debut;
+
+                std::printf("ANNONCE %u MENT %s\n", static_cast<unsigned>(i + 1),
+                            hashes[static_cast<size_t>(debut)]);
+                ++mensonges;
+        }
+
+        std::printf("MENSONGES %ld\n", mensonges);
         return 0;
 }

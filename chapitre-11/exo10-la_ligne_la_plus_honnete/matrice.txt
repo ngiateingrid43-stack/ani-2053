@@ -1,20 +1,11 @@
 10
-grille 800 100 OBSERVEE
-palette 600 200 MESUREE
-calques 1200 900 MESUREE
-ombre 400 700 SUPPOSEE
-raccourcis 900 400 OBSERVEE
-export 1500 1100 SUPPOSEE
-planche 700 500 MESUREE
-historique 650 800 OBSERVEE
-zoom 300 250 MESUREE
-recadrage 200 1400 OBSERVEE
-8
-grille
-palette
-calques
-raccourcis
-export
-planche
-historique
-zoom
+annulation-generale 5 5 OBSERVEE MANQUE
+sauvegarde-automatique 4 2 MESUREE MANQUE
+ranger-le-plan 4 2 OBSERVEE MANQUE
+texte-a-venir-du-panneau 2 1 MESUREE MANQUE
+centrer-la-vue 4 1 OBSERVEE MANQUE
+tests-du-format 2 3 MESUREE SOCLE sauvegarde-automatique
+rotation-a-la-souris 2 4 OBSERVEE MANQUE
+miroirs-deja-cables 2 3 SUPPOSEE MANQUE
+refonte-de-la-glue 3 5 SUPPOSEE REECRITURE
+themes-par-planche 1 4 SUPPOSEE CHOIX

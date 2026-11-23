@@ -1,167 +1,184 @@
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
+#include <string>
+#include <vector>
 
 namespace {
 
-const int kMaxLignes = 64;
-const int kMaxNom = 32;
-const int kMaxMot = 32;
-const int kSeuilCher = 1000;
-const int kSeuilFaible = 400;
-const int kTampon = 1 << 16;
-
-char gTampon[kTampon];
-int gAt = 0;
-int gLen = 0;
-
-void Remplir() {
-        if (gAt < gLen)
-                return;
-        gLen = (int)fread(gTampon, 1, kTampon, stdin);
-        gAt = 0;
-}
-
-char LireChar() {
-        Remplir();
-        if (gAt >= gLen)
-                return 0;
-        return gTampon[gAt++];
-}
-
-void LireMot(char *dst, int cap) {
-        int n = 0;
-        char c = LireChar();
-        while (c != 0 && c != ' ' && c != '\n' && c != '\r' && c != '\t') {
-                if (n < cap - 1)
-                        dst[n++] = c;
-                c = LireChar();
-        }
-        dst[n] = 0;
-}
-
-int LireInt() {
-        char mot[32];
-        LireMot(mot, sizeof(mot));
-        return atoi(mot);
-}
-
-int LireEtiquette() {
-        char mot[kMaxMot];
-        LireMot(mot, sizeof(mot));
-        if (strcmp(mot, "MESUREE") == 0)
-                return 3;
-        if (strcmp(mot, "OBSERVEE") == 0)
-                return 2;
-        if (strcmp(mot, "SUPPOSEE") == 0)
-                return 1;
-        return 0;
-}
-
-void Ecrire(const char *txt) {
-        fputs(txt, stdout);
-}
-
-void EcrireEntier(int v) {
-        char txt[24];
-        int n = 0;
-        if (v <= 0) {
-                txt[n++] = '0';
-        } else {
-                char tmp[24];
-                int m = 0;
-                while (v > 0) {
-                        tmp[m++] = (char)('0' + (v % 10));
-                        v /= 10;
-                }
-                while (m > 0)
-                        txt[n++] = tmp[--m];
-        }
-        txt[n] = 0;
-        Ecrire(txt);
-}
-
-struct Ligne {
-        char nom[kMaxNom];
-        int valeur;
-        int cout;
-        int etiquette;
-        const char *verdict;
+struct NkEntree {
+        std::string nom;
+        int valeur = 0;
+        int cout = 0;
+        int etiquette = 0; // 0 MESUREE, 1 OBSERVEE, 2 SUPPOSEE, 3 aucune
+        int genre = 0;     // 0 MANQUE, 1 REECRITURE, 2 CHOIX, 3 SOCLE
+        std::string cible;
+        int rang = 0;
+        int caseFinale = 0;
+        bool gardee = false;
 };
 
-Ligne gLignes[kMaxLignes];
-int gNbLignes = 0;
-
-void Traiter() {
-        const int n = LireInt();
-        for (int i = 0; i < n && gNbLignes < kMaxLignes; ++i) {
-                Ligne &l = gLignes[gNbLignes];
-                LireMot(l.nom, sizeof(l.nom));
-                l.valeur = LireInt();
-                l.cout = LireInt();
-                l.etiquette = LireEtiquette();
-                if (l.cout >= kSeuilCher && l.valeur <= kSeuilFaible)
-                        l.verdict = "ON_NE_LE_FAIT_PAS";
-                else if (l.cout > l.valeur)
-                        l.verdict = "DECOUPER";
-                else if (l.cout * 3 <= l.valeur)
-                        l.verdict = "EN_PASSANT";
-                else
-                        l.verdict = "MAINTENANT";
-                ++gNbLignes;
+const char *NomEtiquette(int etiquette) {
+        switch (etiquette) {
+        case 0:
+                return "MESUREE";
+        case 1:
+                return "OBSERVEE";
+        default:
+                return "SUPPOSEE";
         }
+}
 
-        int refuses = 0;
-        int supposees = 0;
-        int retenues = 0;
-
-        for (int i = 0; i < gNbLignes; ++i) {
-                const Ligne &l = gLignes[i];
-                Ecrire("CASE ");
-                Ecrire(l.nom);
-                Ecrire(" VALEUR ");
-                EcrireEntier(l.valeur);
-                Ecrire(" COUT ");
-                EcrireEntier(l.cout);
-                Ecrire(" ");
-                if (l.etiquette == 3)
-                        Ecrire("MESUREE ");
-                else if (l.etiquette == 2)
-                        Ecrire("OBSERVEE ");
-                else if (l.etiquette == 1)
-                        Ecrire("SUPPOSEE ");
-                else
-                        Ecrire("INCONNUE ");
-                Ecrire(l.verdict);
-                Ecrire("\n");
-
-                if (strcmp(l.verdict, "ON_NE_LE_FAIT_PAS") == 0)
-                        ++refuses;
-                else
-                        ++retenues;
-                if (l.etiquette < 3)
-                        ++supposees;
+const char *NomCase(int c) {
+        switch (c) {
+        case 0:
+                return "MAINTENANT";
+        case 1:
+                return "DECOUPER";
+        case 2:
+                return "EN_PASSANT";
+        default:
+                return "ON_NE_LE_FAIT_PAS";
         }
-
-        Ecrire("CASES ");
-        EcrireEntier(gNbLignes);
-        Ecrire("\nRETENUES ");
-        EcrireEntier(retenues);
-        Ecrire("\nREFUSEES ");
-        EcrireEntier(refuses);
-        Ecrire("\nSUPPOSEES ");
-        EcrireEntier(supposees);
-        Ecrire("\n");
-
-        if (refuses >= 1)
-                Ecrire("VERDICT HONNETE\n");
-        else
-                Ecrire("VERDICT COMPLAISANT\n");
 }
 
 } // namespace
 
 int main() {
-        Traiter();
+        char mot[256];
+        long n = 0;
+        if (std::scanf("%255s", mot) != 1)
+                return 0;
+        n = std::strtol(mot, nullptr, 10);
+        if (n < 0)
+                n = 0;
+
+        std::vector<NkEntree> entrees;
+        for (long i = 0; i < n; ++i) {
+                NkEntree e;
+                char nom[256], etiquette[64], genre[64], cible[256];
+                int valeur = 0, cout = 0;
+                if (std::scanf("%255s %d %d %63s %63s", nom, &valeur, &cout, etiquette, genre) != 5)
+                        break;
+                e.nom = nom;
+                e.valeur = valeur;
+                e.cout = cout;
+                e.rang = static_cast<int>(i);
+                if (std::strcmp(etiquette, "MESUREE") == 0)
+                        e.etiquette = 0;
+                else if (std::strcmp(etiquette, "OBSERVEE") == 0)
+                        e.etiquette = 1;
+                else if (std::strcmp(etiquette, "SUPPOSEE") == 0)
+                        e.etiquette = 2;
+                else
+                        e.etiquette = 3;
+
+                if (std::strcmp(genre, "MANQUE") == 0)
+                        e.genre = 0;
+                else if (std::strcmp(genre, "REECRITURE") == 0)
+                        e.genre = 1;
+                else if (std::strcmp(genre, "CHOIX") == 0)
+                        e.genre = 2;
+                else {
+                        e.genre = 3;
+                        if (std::scanf("%255s", cible) == 1)
+                                e.cible = cible;
+                }
+                entrees.push_back(e);
+        }
+
+        // Ce qui est ecarte, releve dans l'ordre de l'entree et affiche apres
+        // les lignes CASE.
+        std::vector<const NkEntree *> ecartees;
+        std::vector<const char *> raisons;
+        for (size_t i = 0; i < entrees.size(); ++i) {
+                NkEntree &e = entrees[i];
+                if (e.genre == 1) {
+                        ecartees.push_back(&e);
+                        raisons.push_back("reecriture");
+                } else if (e.genre == 2) {
+                        ecartees.push_back(&e);
+                        raisons.push_back("choix");
+                } else if (e.etiquette == 3) {
+                        ecartees.push_back(&e);
+                        raisons.push_back("sans_etiquette");
+                } else {
+                        e.gardee = true;
+                }
+        }
+
+        // La valeur d'un socle : la plus grande de la sienne et de celle de sa
+        // cible, quand cette cible est un MANQUE garde.
+        for (size_t i = 0; i < entrees.size(); ++i) {
+                NkEntree &e = entrees[i];
+                if (!e.gardee || e.genre != 3)
+                        continue;
+                for (size_t j = 0; j < entrees.size(); ++j) {
+                        const NkEntree &cible = entrees[j];
+                        if (cible.nom == e.cible && cible.gardee && cible.genre == 0) {
+                                if (cible.valeur > e.valeur)
+                                        e.valeur = cible.valeur;
+                                break;
+                        }
+                }
+        }
+
+        for (size_t i = 0; i < entrees.size(); ++i) {
+                NkEntree &e = entrees[i];
+                if (!e.gardee)
+                        continue;
+                const bool forte = e.valeur >= 3;
+                const bool chevre = e.cout >= 3;
+                if (forte && !chevre)
+                        e.caseFinale = 0;
+                else if (forte && chevre)
+                        e.caseFinale = 1;
+                else if (!forte && !chevre)
+                        e.caseFinale = 2;
+                else
+                        e.caseFinale = 3;
+        }
+
+        // Tri : case, etiquette, valeur decroissante, cout croissant, entree.
+        std::vector<const NkEntree *> rangees;
+        for (size_t i = 0; i < entrees.size(); ++i)
+                if (entrees[i].gardee)
+                        rangees.push_back(&entrees[i]);
+
+        for (size_t i = 1; i < rangees.size(); ++i) {
+                const NkEntree *clef = rangees[i];
+                size_t j = i;
+                while (j > 0) {
+                        const NkEntree *autre = rangees[j - 1];
+                        bool avant = false;
+                        if (clef->caseFinale != autre->caseFinale)
+                                avant = clef->caseFinale < autre->caseFinale;
+                        else if (clef->etiquette != autre->etiquette)
+                                avant = clef->etiquette < autre->etiquette;
+                        else if (clef->valeur != autre->valeur)
+                                avant = clef->valeur > autre->valeur;
+                        else if (clef->cout != autre->cout)
+                                avant = clef->cout < autre->cout;
+                        else
+                                avant = clef->rang < autre->rang;
+                        if (!avant)
+                                break;
+                        rangees[j] = autre;
+                        --j;
+                }
+                rangees[j] = clef;
+        }
+
+        bool quelqueChoseRefuse = false;
+        for (size_t i = 0; i < rangees.size(); ++i) {
+                std::printf("%s %s %s\n", NomCase(rangees[i]->caseFinale), rangees[i]->nom.c_str(),
+                            NomEtiquette(rangees[i]->etiquette));
+                if (rangees[i]->caseFinale == 3)
+                        quelqueChoseRefuse = true;
+        }
+
+        for (size_t i = 0; i < ecartees.size(); ++i)
+                std::printf("HORS_LISTE %s %s\n", ecartees[i]->nom.c_str(), raisons[i]);
+
+        std::printf("VERDICT %s\n", quelqueChoseRefuse ? "HONNETE" : "COMPLAISANT");
         return 0;
 }

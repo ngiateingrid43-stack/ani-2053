@@ -1,2 +1,8 @@
-Cinquante : 51832
-Deux cents : 207232
+Cinquante :
+images : 50, octets : 51832, ecrire : 0.395 ms, relire : 0.309 ms
+images : 50, octets : 51832, ecrire : 0.396 ms, relire : 0.326 ms
+images : 50, octets : 51832, ecrire : 0.409 ms, relire : 0.318 ms
+Deux cents :
+images : 200, octets : 207232, ecrire : 1.619 ms, relire : 1.227 ms
+images : 200, octets : 207232, ecrire : 1.572 ms, relire : 1.336 ms
+images : 200, octets : 207232, ecrire : 1.619 ms, relire : 1.334 ms
